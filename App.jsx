@@ -9,6 +9,7 @@ import Signup from './src/screens/Signup';
 
 const Stack = createStackNavigator();
 
+
 export default function App() {
   return (
     <NavigationContainer>
