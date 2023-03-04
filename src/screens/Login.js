@@ -1,9 +1,9 @@
-import { ScrollView, View, Text, Image, TextInput, Alert, StyleSheet, SafeAreaView, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform } from 'react-native'
-import React from 'react'
-import { useState } from 'react';
+import { ScrollView, View, Text, Image, TextInput, Alert, StyleSheet, SafeAreaView, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState } from 'react'
 import { CLIENT_ID } from '@env'
 import auth from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import firestore from '@react-native-firebase/firestore';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -37,30 +37,70 @@ const Login = ({ navigation }) => {
           navigation.navigate('TabNav');
           Alert.alert(
             'Success',
-            'User signed in successfully',
+            'Logged in Successfully',
           );
         })
         .catch((err) => {
           console.log(err);
           Alert.alert(
             'Incorrect',
-            'User crediantials are Incorrect',
+            'Crediantials are Incorrect',
           );
         })
     }
   }
 
+  async function storeData(user) {
+    try {
+      const userRef = firestore().collection('Users').doc(user.uid);
+      const userSnapshot = await userRef.get();
+
+      if (!userSnapshot.exists) {
+        await userRef.set({
+          name: user.displayName,
+          email: user.email,
+          userId: user.uid,
+        });
+        console.log('User added!');
+        navigation.navigate('TabNav');
+        Alert.alert(
+          'Success',
+          'Logged in Successfully',
+        );
+      } else {
+        console.log('Success');
+        navigation.navigate('TabNav');
+        Alert.alert(
+          'Success',
+          'Logged in Successfully',
+        );
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   async function onGoogleButtonPress() {
-    // Check if your device supports Google Play
-    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-    // Get the users ID token
-    const { idToken } = await GoogleSignin.signIn();
+    try {
+      // Check if your device supports Google Play
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      // Get the users ID token
+      const { idToken } = await GoogleSignin.signIn();
 
-    // Create a Google credential with the token
-    const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      // Create a Google credential with the token
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
 
-    // Sign-in the user with the credential
-    return auth().signInWithCredential(googleCredential);
+      // Sign-in the user with the credential
+      const { user } = await auth().signInWithCredential(googleCredential);
+
+      await storeData(user);
+    } catch (error) {
+      if (error.message === 'Sign in action cancelled') {
+        console.log('Cancelled');
+      } else {
+        console.log(error);
+      }
+    }
   }
 
   return (
@@ -97,10 +137,7 @@ const Login = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             <View style={styles.btnContainer}>
-              <TouchableOpacity style={styles.button} title='Google Sign-In' onPress={() => onGoogleButtonPress().then(() => {
-                console.log('Signed in with Google!');
-                navigation.navigate('TabNav');
-              })}>
+              <TouchableOpacity style={styles.button} title='Google Sign-In' onPress={onGoogleButtonPress}>
                 <Text style={styles.loginText}>Google Sign-In</Text>
               </TouchableOpacity>
             </View>

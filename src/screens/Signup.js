@@ -1,12 +1,17 @@
-import { ScrollView, View, Text, TextInput, Alert, StyleSheet, SafeAreaView, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform } from 'react-native'
-import React from 'react'
-import { useState } from 'react';
+import { ScrollView, View, Text, TextInput, Alert, StyleSheet, SafeAreaView, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { CLIENT_ID } from '@env'
 import auth from '@react-native-firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import firestore from '@react-native-firebase/firestore';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import Feather from 'react-native-vector-icons/Feather';
 import Fontisto from 'react-native-vector-icons/Fontisto';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
+GoogleSignin.configure({
+  webClientId: CLIENT_ID,
+});
 
 const Signup = ({ navigation }) => {
   const [fname, setFname] = useState('');
@@ -15,63 +20,115 @@ const Signup = ({ navigation }) => {
   const [secureTextEntry, setSecureTextEntry] = useState(true);
 
   const registerInUser = () => {
-    if(email==''){
+    if (email == '') {
       Alert.alert(
         'Empty Field',
         'Please Enter Email Address',
       );
     }
-    else if(password==''){
+    else if (password == '') {
       Alert.alert(
         'Empty Field',
         'Please Enter Password',
       );
     }
-    else if(fname==''){
+    else if (fname == '') {
       Alert.alert(
         'Empty Field',
         'Please Enter Name',
       );
     }
-    else{
-    auth().createUserWithEmailAndPassword(email, password)
-      .then((e) => {
-        const user = auth().currentUser;
-        firestore().collection('Users').doc(user.uid)
-          .set({
-            name: fname,
-            email: email,
-            password: password,
-            user: user.uid,
-          })
-          .then(() => {
-            console.log('User added!');
-            navigation.navigate('TabNav');
+    else {
+      auth().createUserWithEmailAndPassword(email, password)
+        .then((e) => {
+          const user = auth().currentUser;
+          firestore().collection('Users').doc(user.uid)
+            .set({
+              name: fname,
+              email: email,
+              userId: user.uid,
+            })
+            .then(() => {
+              console.log('User added!');
+              navigation.navigate('TabNav');
+              Alert.alert(
+                'Success',
+                'Registered Successfully',
+              );
+            });
+
+        })
+        .catch((error) => {
+          if (error.code === 'auth/email-already-in-use') {
+            console.log('That email address is already in use!');
             Alert.alert(
-              'Success',
-              'User registered successfully',
+              'Incorrect',
+              'That email address is already in use!',
             );
-          });
+          }
 
-      })
-      .catch((error) => {
-        if (error.code === 'auth/email-already-in-use') {
-          console.log('That email address is already in use!');
-          Alert.alert(
-            'Incorrect',
-            'That email address is already in use!',
-          );
-        }
+          if (error.code === 'auth/invalid-email') {
+            console.log('That email address is invalid!');
+            Alert.alert(
+              'Incorrect',
+              'That email address is invalid!',
+            );
+          }
+          console.error(error);
+        })
+    }
+  }
 
-        if (error.code === 'auth/invalid-email') {
-          console.log('That email address is invalid!');
-          Alert.alert(
-            'Incorrect',
-            'That email address is invalid!',
-          );
-        }
-        console.error(error);
-      })
+  async function storeData(user) {
+    try {
+      const userRef = firestore().collection('Users').doc(user.uid);
+      const userSnapshot = await userRef.get();
+
+      if (!userSnapshot.exists) {
+        await userRef.set({
+          name: user.displayName,
+          email: user.email,
+          userId: user.uid,
+        });
+        console.log('User added!');
+        navigation.navigate('TabNav');
+        Alert.alert(
+          'Success',
+          'Registered Successfully',
+        );
+      } else {
+        console.log('Already Registered!');
+        navigation.navigate('TabNav');
+        Alert.alert(
+          'Already Registered',
+          'You already have an account for this Gmail \n\Logged in Successfully',
+        );
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async function onGoogleButtonPress() {
+    try {
+      // Check if your device supports Google Play
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      // Get the users ID token
+      const { idToken } = await GoogleSignin.signIn();
+
+      // Create a Google credential with the token
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+
+      // Sign-in the user with the credential
+      const { user } = await auth().signInWithCredential(googleCredential);
+
+      await storeData(user);
+    } catch (error) {
+      if (error.message === 'Sign in action cancelled') {
+        console.log('Cancelled');
+      } else {
+        console.log(error);
+      }
     }
   }
 
@@ -81,7 +138,7 @@ const Signup = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <SafeAreaView style={styles.inner}>
-          <View style={styles.textInputContainer}>
+            <View style={styles.textInputContainer}>
               <Feather style={{ marginRight: 10 }} name='user' size={25} color='#D6AD60' />
               <TextInput style={styles.textInput} placeholder='Full Name' value={fname} onChangeText={text => setFname(text)} />
             </View>
@@ -93,20 +150,25 @@ const Signup = ({ navigation }) => {
               <Feather style={{ marginRight: 10 }} name='lock' size={25} color='#D6AD60' />
               <TextInput style={styles.textInput} placeholder='Password' value={password} secureTextEntry={secureTextEntry} onChangeText={text => setPassword(text)} />
               <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
-              <MaterialIcons
-                name={
-                  secureTextEntry
-                    ? 'visibility-off'
-                    : 'visibility'
-                }
-                size={25}
-                color='#D6AD60'
-              />
-            </TouchableOpacity>
+                <MaterialIcons
+                  name={
+                    secureTextEntry
+                      ? 'visibility-off'
+                      : 'visibility'
+                  }
+                  size={25}
+                  color='#D6AD60'
+                />
+              </TouchableOpacity>
             </View>
             <View style={styles.btnContainer}>
               <TouchableOpacity style={styles.button} title='Register' onPress={registerInUser}>
                 <Text style={styles.loginText}>Register</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.btnContainer}>
+              <TouchableOpacity style={styles.button} title='Google Sign-In' onPress={onGoogleButtonPress}>
+                <Text style={styles.loginText}>Google Sign-In</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.btnContainer}>

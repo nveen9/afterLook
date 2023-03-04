@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, SafeAreaView, Text, View } from "react-native";
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import auth from '@react-native-firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useIsFocused } from '@react-navigation/native';
 
 const Home = ({ navigation }) => {
@@ -9,26 +10,37 @@ const Home = ({ navigation }) => {
   const isFocused = useIsFocused();
 
   useEffect(() => {
-    if (isFocused) {
+    if (!isSignedIn) {
       auth().onAuthStateChanged(user => {
         if (!user) {
             console.log('User not found!');
             setIsSignedIn(false);
         } else {
           console.log('User found!');
-          navigation.navigate('Home');
+          // navigation.navigate('Home');
           setIsSignedIn(true);
         }
       })
     }
-  }, [isFocused]);
+  }, [isSignedIn]);
 
-  const logout = () => {
-    auth().signOut().then(() => {
-      console.log('Signout Success');
-    }).catch((error) => {
-      console.log(error);
-    });
+  const logout = async () => {
+    const googleUser = await GoogleSignin.isSignedIn();
+
+    if(googleUser) {
+      try{
+        await GoogleSignin.revokeAccess();
+        await GoogleSignin.signOut();
+      }catch(err){
+        console.log(err);
+      }     
+    }else {
+      auth().signOut().then(() => {
+        console.log('Signout Success');
+      }).catch((error) => {
+        console.log(error);
+      });
+    } 
   }
 
   return (
