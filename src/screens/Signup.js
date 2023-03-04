@@ -1,15 +1,14 @@
 import { ScrollView, View, Text, TextInput, Alert, StyleSheet, SafeAreaView, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform } from 'react-native'
 import React from 'react'
 import { useState } from 'react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../dbConfig/firebase';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import Feather from 'react-native-vector-icons/Feather';
 import Fontisto from 'react-native-vector-icons/Fontisto';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const Signup = ({ navigation }) => {
-  const [isSignedIn, setIsSignedIn] = useState(false);
   const [fname, setFname] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,27 +34,24 @@ const Signup = ({ navigation }) => {
       );
     }
     else{
-    createUserWithEmailAndPassword(auth, email, password)
+    auth().createUserWithEmailAndPassword(email, password)
       .then((e) => {
-        console.log(e, "Auth Success");
-        setIsSignedIn(true);
-        navigation.navigate('TabNav');
-        // const user = auth().currentUser;
-        // firestore().collection('Users').doc(user.uid)
-        //   .set({
-        //     name: fname,
-        //     email: email,
-        //     password: password,
-        //     user: user.uid,
-        //   })
-        //   .then(() => {
-        //     console.log('User added!');
-        //     navigation.navigate('TabNav');
-        //     Alert.alert(
-        //       'Success',
-        //       'User registered successfully',
-        //     );
-        //   });
+        const user = auth().currentUser;
+        firestore().collection('Users').doc(user.uid)
+          .set({
+            name: fname,
+            email: email,
+            password: password,
+            user: user.uid,
+          })
+          .then(() => {
+            console.log('User added!');
+            navigation.navigate('TabNav');
+            Alert.alert(
+              'Success',
+              'User registered successfully',
+            );
+          });
 
       })
       .catch((error) => {

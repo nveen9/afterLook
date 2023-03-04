@@ -1,49 +1,46 @@
 import { ScrollView, View, Text, Image, TextInput, Alert, StyleSheet, SafeAreaView, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform } from 'react-native'
 import React from 'react'
 import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../dbConfig/firebase';
+import auth from '@react-native-firebase/auth';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const Login = ({ navigation }) => {
-  const [isSignedIn, setIsSignedIn] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
 
   const signInUser = () => {
-    if(email==''){
+    if (email == '') {
       Alert.alert(
         'Empty Field',
         'Please Enter Email Address',
       );
     }
-    else if(password==''){
+    else if (password == '') {
       Alert.alert(
         'Empty Field',
         'Please Enter Password',
       );
     }
-    else{
-      signInWithEmailAndPassword(auth, email, password)
-      .then((re) => {
-        console.log(re);
-        setIsSignedIn(true);
-        navigation.navigate('TabNav');
-        Alert.alert(
-          'Success',
-          'User signed in successfully',
-        );
-      })
-      .catch((err) => {
-        console.log(err);
-        Alert.alert(
-          'Incorrect',
-          'User crediantials are Incorrect',
-        );
-      })
+    else {
+      auth().signInWithEmailAndPassword(email, password)
+        .then((re) => {
+          console.log(re);
+          navigation.navigate('TabNav');
+          Alert.alert(
+            'Success',
+            'User signed in successfully',
+          );
+        })
+        .catch((err) => {
+          console.log(err);
+          Alert.alert(
+            'Incorrect',
+            'User crediantials are Incorrect',
+          );
+        })
     }
   }
 
@@ -64,16 +61,16 @@ const Login = ({ navigation }) => {
               <Feather style={{ marginRight: 10 }} name='lock' size={25} color='#D6AD60' />
               <TextInput style={styles.textInput} placeholder='Password' value={password} secureTextEntry={secureTextEntry} onChangeText={text => setPassword(text)} />
               <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
-              <MaterialIcons
-                name={
-                  secureTextEntry
-                    ? 'visibility-off'
-                    : 'visibility'
-                }
-                size={25}
-                color='#D6AD60'
-              />
-            </TouchableOpacity>
+                <MaterialIcons
+                  name={
+                    secureTextEntry
+                      ? 'visibility-off'
+                      : 'visibility'
+                  }
+                  size={25}
+                  color='#D6AD60'
+                />
+              </TouchableOpacity>
             </View>
             <View style={styles.btnContainer}>
               <TouchableOpacity style={styles.button} title='Login' onPress={signInUser}>
