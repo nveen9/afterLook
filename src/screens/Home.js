@@ -13,19 +13,19 @@ const Home = ({ navigation }) => {
       auth().onAuthStateChanged(user => {
         if (!user) {
             console.log('User not found!');
-            setIsSignedIn(true);
+            setIsSignedIn(false);
         } else {
           console.log('User found!');
           navigation.navigate('Home');
+          setIsSignedIn(true);
         }
       })
     }
   }, [isFocused]);
 
   const logout = () => {
-    signOut(auth).then(() => {
+    auth().signOut().then(() => {
       console.log('Signout Success');
-      AsyncStorage.removeItem('userId');
     }).catch((error) => {
       console.log(error);
     });
@@ -33,12 +33,10 @@ const Home = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Text style={styles.signUpText}>Email {isSignedIn ? auth().currentUser.email : 'No User Signed In'}</Text>
+      <View style={styles.devider}></View>
       <TouchableOpacity title='Signup' onPress={() => navigation.navigate('Signup')}>
         <Text style={styles.signUpText}>Signup</Text>
-      </TouchableOpacity>
-      <View style={styles.devider}></View>
-      <TouchableOpacity title='ID' onPress={() => console.log(auth.currentUser.uid)}>
-        <Text style={styles.signUpText}>ID</Text>
       </TouchableOpacity>
       <View style={styles.devider}></View>
       <TouchableOpacity title='Logout' onPress={logout}>

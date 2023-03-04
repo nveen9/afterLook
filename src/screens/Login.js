@@ -1,10 +1,16 @@
 import { ScrollView, View, Text, Image, TextInput, Alert, StyleSheet, SafeAreaView, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform } from 'react-native'
 import React from 'react'
 import { useState } from 'react';
+import { CLIENT_ID } from '@env'
 import auth from '@react-native-firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
+GoogleSignin.configure({
+  webClientId: CLIENT_ID,
+});
 
 const Login = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -44,6 +50,19 @@ const Login = ({ navigation }) => {
     }
   }
 
+  async function onGoogleButtonPress() {
+    // Check if your device supports Google Play
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    // Get the users ID token
+    const { idToken } = await GoogleSignin.signIn();
+
+    // Create a Google credential with the token
+    const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+
+    // Sign-in the user with the credential
+    return auth().signInWithCredential(googleCredential);
+  }
+
   return (
     <ScrollView style={styles.container}>
       <KeyboardAvoidingView
@@ -75,6 +94,14 @@ const Login = ({ navigation }) => {
             <View style={styles.btnContainer}>
               <TouchableOpacity style={styles.button} title='Login' onPress={signInUser}>
                 <Text style={styles.loginText}>Login</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.btnContainer}>
+              <TouchableOpacity style={styles.button} title='Google Sign-In' onPress={() => onGoogleButtonPress().then(() => {
+                console.log('Signed in with Google!');
+                navigation.navigate('TabNav');
+              })}>
+                <Text style={styles.loginText}>Google Sign-In</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.btnContainer}>
