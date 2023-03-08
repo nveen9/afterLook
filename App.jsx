@@ -14,8 +14,8 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
-        <Stack.Screen name="TabNav" component={TabNav} options={{headerShown: false}}/>
-        <Stack.Screen name="AddContacts" component={AddContacts} options={{title: 'AddContacts'}}/>
+        <Stack.Screen name="TabNav" component={TabNav} options={{headerShown: false }}/>
+        <Stack.Screen name="AddContacts" component={AddContacts} options={{title: 'Add Contacts'}}/>
         <Stack.Screen name="Login" component={Login} options={{title: 'Login'}}/>
         <Stack.Screen name="Signup" component={Signup} options={{title: 'Signup'}}/>
       </Stack.Navigator>

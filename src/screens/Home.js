@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, Text, View } from "react-native";
+import { StyleSheet, SafeAreaView, Text, View, StatusBar } from "react-native";
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import auth from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -45,6 +45,7 @@ const Home = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar translucent backgroundColor="#000" />
       <Text style={styles.signUpText}>Email {isSignedIn ? auth().currentUser.email : 'No User Signed In'}</Text>
       <View style={styles.devider}></View>
       <TouchableOpacity title='Signup' onPress={() => navigation.navigate('Signup')}>
@@ -63,6 +64,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#fff",
   },
   devider: {
     margin: 10,

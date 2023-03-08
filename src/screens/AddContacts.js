@@ -5,8 +5,8 @@ import Contacts from 'react-native-contacts';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const AddContacts = ({ navigation }) => {
-
-  const [contacts, setContacts] = useState([]);
+  const [newContacts, setNewContacts] = useState([]);
+  const sortedData = newContacts.sort((a, b) => (a.displayName ?? '').localeCompare(b.displayName ?? ''));
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState([]);
 
@@ -23,9 +23,13 @@ const AddContacts = ({ navigation }) => {
         console.log('Contacts permission granted');
         Contacts.getAll()
           .then((contacts) => {
-            // work with contacts
-            console.log(contacts);
-            setContacts(contacts);
+            const newContacts = contacts.map(({ recordID, displayName, phoneNumbers }) => ({
+              recordID,
+              displayName: displayName || '',
+              phoneNumbers: phoneNumbers.length > 0 ? phoneNumbers[0].number : ''
+            }));
+            setNewContacts(newContacts);
+            console.log(newContacts);
           })
           .catch((e) => {
             console.log(e);
@@ -61,7 +65,7 @@ const AddContacts = ({ navigation }) => {
     getSavedContacts();
   }, []);
 
-  const filteredContacts = contacts.filter((contact) =>
+  const filteredContacts = sortedData.filter((contact) =>
     contact.displayName && contact.displayName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -115,10 +119,10 @@ const AddContacts = ({ navigation }) => {
         renderItem={renderItem}
         keyExtractor={(item) => item.recordID}
       />
-        <Button
-          title="Save selected contacts"
-          color="#B68D40"
-          onPress={onSaveSelectedContacts} />
+      <Button
+        title="Save selected contacts"
+        color="#B68D40"
+        onPress={onSaveSelectedContacts} />
     </View>
   );
 }
