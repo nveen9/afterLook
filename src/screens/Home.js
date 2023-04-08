@@ -45,7 +45,7 @@ const Home = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar translucent backgroundColor="#000" />
+      <StatusBar translucent backgroundColor="#2A2E30" />
       <Text style={styles.signUpText}>Email {isSignedIn ? auth().currentUser.email : 'No User Signed In'}</Text>
       <View style={styles.devider}></View>
       <TouchableOpacity title='Signup' onPress={() => navigation.navigate('Signup')}>

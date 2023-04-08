@@ -64,6 +64,4 @@ yarn-error.log
 
 .env
 
-src/dbConfig/firebase.js
-
 android/app/google-services.json

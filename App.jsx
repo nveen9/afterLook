@@ -15,9 +15,9 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator>
         <Stack.Screen name="TabNav" component={TabNav} options={{headerShown: false }}/>
-        <Stack.Screen name="AddContacts" component={AddContacts} options={{title: 'Add Contacts'}}/>
-        <Stack.Screen name="Login" component={Login} options={{title: 'Login'}}/>
-        <Stack.Screen name="Signup" component={Signup} options={{title: 'Signup'}}/>
+        <Stack.Screen name="AddContacts" component={AddContacts} options={{title: 'Add Contacts', headerTintColor: '#B68D40', headerStyle: {backgroundColor: '#2A2E30'}}}/>
+        <Stack.Screen name="Login" component={Login} options={{title: 'Login', headerTintColor: '#B68D40', headerStyle: {backgroundColor: '#2A2E30'}}}/>
+        <Stack.Screen name="Signup" component={Signup} options={{title: 'Signup', headerTintColor: '#B68D40', headerStyle: {backgroundColor: '#2A2E30'}}}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

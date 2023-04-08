@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Button, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, Button, TouchableOpacity, PermissionsAndroid, NativeModules, Animated } from "react-native";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
+import RNCallKeep from 'react-native-callkeep';
+import { Swipeable } from 'react-native-gesture-handler';
 
-const ContactList = ({ navigation }) => {
+const ContactList = () => {
 
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [noContacts, setNoContacts] = useState(false);
   const isFocused = useIsFocused();
+
+  const DirectSMS = NativeModules.DirectSMS;
 
   useEffect(() => {
     if (isFocused) {
@@ -40,7 +44,69 @@ const ContactList = ({ navigation }) => {
     }
   }, [isFocused]);
 
-  const renderItem = ({ item, drag, isActive }) => (
+  useEffect(() => {
+    console.log("Current Contacts ", selectedContacts);
+    onSaveUpdatedContacts(selectedContacts);
+  }, [selectedContacts]);
+
+  const sendSMsS = async () => {
+    try{
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.SEND_SMS,
+        {
+          title: 'After Look App Message Permission',
+          message:
+            'After Look App needs access to your Message Application ' +
+            'In order to send the alert.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        try{
+          const message = 'Fall Detected!!!';
+          for(let i = 0; i <selectedContacts.length; i++) {
+            DirectSMS.sendDirectSMS(selectedContacts[i].phoneNumbers, message);
+          }
+          console.log('Message Sent');
+        }catch(err){
+          console.log('Error Sending Message');
+        }    
+      } else {
+        console.log('Permission denied');
+      }
+    }catch(err){
+      console.log(err);
+    }
+  }
+
+  const renderItem = ({ item, drag, isActive }) => {
+    const renderRightActions = (progress, dragX) => {
+      const trans = dragX.interpolate({
+        inputRange: [-100, 0],
+        outputRange: [1, 0],
+        extrapolate: 'clamp',
+      });
+  
+      return (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => {
+            setSelectedContacts((prevData) =>
+              prevData.filter((contact) => contact.recordID !== item.recordID)
+          );
+          }}
+        >
+          <Animated.Text style={{ transform: [{ translateX: trans }] }}>
+            Delete
+          </Animated.Text>
+        </TouchableOpacity>
+      );
+    };
+
+    return (
+      <Swipeable renderRightActions={renderRightActions}>
     <ScaleDecorator>
       <TouchableOpacity
         onLongPress={drag}
@@ -49,32 +115,38 @@ const ContactList = ({ navigation }) => {
       >
         <Text style={styles.txt}>{item.displayName}</Text>
         {item.phoneNumbers && item.phoneNumbers.length > 0 && (
-          <Text style={styles.txt}>{item.phoneNumbers[0].number}</Text>
+          <Text style={styles.txt}>{item.phoneNumbers}</Text>
         )}
       </TouchableOpacity>
     </ScaleDecorator>
-  );
+    </Swipeable>
+    );
+  };
+
+  const onSaveUpdatedContacts = async (selectedContacts) => {
+    try {
+      await AsyncStorage.setItem('selectedContacts', JSON.stringify(selectedContacts));
+    } catch (error) {
+      console.log('Error saving updated contacts to local storage:', error);
+    }
+  };
 
   return (
     <>
       {noContacts ?
         <View style={styles.nocontainer}>
-          <Button
-            title="Select Contacts"
-            onPress={() => navigation.navigate("AddContacts")}
-          />
           <View style={styles.nocont}>
             <Text style={styles.notxt}>No Contacts</Text>
           </View>
         </View>
         :
         <View style={styles.container}>
-          <Button
-            title="Select Contacts"
-            onPress={() => navigation.navigate("AddContacts")}
-          />
           <View style={styles.cont}>
-            <Text style={styles.notxt}>Order the Contacts as Priority</Text>
+            <Text style={styles.ordertxt}>Reorder the Contacts as Priority</Text>
+            <View style={styles.nocont}>
+              <Text style={styles.dordertxt}>Hold to drag</Text>
+              <Button title="Send" onPress={sendSMsS} />
+            </View>
           </View>
           <DraggableFlatList
             data={selectedContacts}
@@ -93,12 +165,12 @@ const ContactList = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFF",
+    backgroundColor: '#FDFDFD',
     alignItems: "center",
   },
   nocontainer: {
     flex: 1,
-    backgroundColor: "#FFF",
+    backgroundColor: '#FDFDFD',
     alignItems: "center",
     justifyContent: "center",
   },
@@ -113,13 +185,34 @@ const styles = StyleSheet.create({
   txt: {
     color: "#000",
   },
+  deleteButton: {
+    backgroundColor: 'red',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 100,
+    height: '100%',
+    right: 0,
+  },
+  cont: {
+    margin: 10,
+  },
   nocont: {
     alignItems: "center",
     justifyContent: "center",
   },
   notxt: {
-    color: "#000",
-  }
+    color: "#B68D40",
+    fontWeight: "bold",
+  },
+  ordertxt: {
+    color: "#B68D40",
+    fontWeight: "bold",
+    fontStyle: "italic",
+  },
+  dordertxt: {
+    color: "#B68D40",
+    fontStyle: "italic",
+  },
 });
 
 export default ContactList;

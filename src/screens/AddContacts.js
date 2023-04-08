@@ -73,7 +73,7 @@ const AddContacts = ({ navigation }) => {
     <View style={styles.itemContainer}>
       <Text style={styles.txt}>{item.displayName}</Text>
       {item.phoneNumbers && item.phoneNumbers.length > 0 && (
-        <Text style={styles.txt}>{item.phoneNumbers[0].number}</Text>
+        <Text style={styles.txt}>{item.phoneNumbers}</Text>
       )}
       <TouchableOpacity
         title=""
@@ -130,10 +130,10 @@ const AddContacts = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4EBD0',
+    backgroundColor: '#FDFDFD',
   },
   searchContainer: {
-    backgroundColor: '#F4EBD0',
+    backgroundColor: '#FDFDFD',
     padding: 15,
     width: '100%',
   },
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#fff',
+    borderBottomColor: '#f2f2f2',
   },
   txt: {
     color: "#000",
