@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, SafeAreaView, Text, View, StatusBar, Switch, Linking, PermissionsAndroid, DevSettings } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { parse, stringify, toJSON, fromJSON } from 'flatted';
 import { accelerometer, gyroscope, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import BackgroundService from 'react-native-background-actions';
 import { TouchableOpacity } from 'react-native-gesture-handler';
@@ -115,6 +114,14 @@ const Home = ({ navigation }) => {
       delay: 1000,
     },
   };
+
+  Linking.addEventListener('url', handleOpenURL);
+
+  function handleOpenURL(evt) {
+    // Will be called when the notification is pressed
+    console.log(evt.url);
+    // do something
+  }
   //
 
   const toggleSwitch = async () => {
