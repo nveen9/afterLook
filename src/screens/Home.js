@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, Text, View, StatusBar, Switch, Linking, PermissionsAndroid, DevSettings } from "react-native";
+import { StyleSheet, SafeAreaView, Text, View, StatusBar, Switch, Linking, PermissionsAndroid, Platform } from "react-native";
+import Toast from 'react-native-simple-toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { accelerometer, gyroscope, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import BackgroundService from 'react-native-background-actions';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 import auth from '@react-native-firebase/auth';
+import RNExitApp from 'react-native-exit-app';
 
 setUpdateIntervalForType(SensorTypes.accelerometer, 1000);
 setUpdateIntervalForType(SensorTypes.gyroscope, 1000);
@@ -65,36 +66,20 @@ const Home = ({ navigation }) => {
   // or there is a foreground app).
   const veryIntensiveTask = async (taskDataArguments) => {
     try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-        {
-          title: 'After Look App Notification Permission',
-          message:
-            'After Look App needs access to your Notification ' +
-            'In order to run the app background.',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        },
-      );
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        const { delay } = taskDataArguments;
-        await new Promise(async (resolve) => {
-          const subA = accelerometer.subscribe(({ x, y, z, timestamp }) => {
-            setAccelerometerData({ x, y, z, timestamp });
-            console.log(timestamp);
-          });
-          setSubscriptionA(subA);
-          const subG = gyroscope.subscribe(({ x, y, z, timestamp }) => {
-            setGyroscopeData({ x, y, z, timestamp });
-          });
-          setSubscriptionG(subG);
-          await BackgroundService.updateNotification({ taskDesc: 'Reading' }); // Only Android, iOS will ignore this call      
-          await sleep(delay);
+      const { delay } = taskDataArguments;
+      await new Promise(async (resolve) => {
+        const subA = accelerometer.subscribe(({ x, y, z, timestamp }) => {
+          setAccelerometerData({ x, y, z, timestamp });
+          console.log(timestamp);
         });
-      } else {
-        console.log('Permission denied');
-      }
+        setSubscriptionA(subA);
+        const subG = gyroscope.subscribe(({ x, y, z, timestamp }) => {
+          setGyroscopeData({ x, y, z, timestamp });
+        });
+        setSubscriptionG(subG);
+        await BackgroundService.updateNotification({ taskDesc: 'Reading' }); // Only Android, iOS will ignore this call      
+        await sleep(delay);
+      });
     } catch (err) {
       console.log(err);
     }
@@ -136,16 +121,39 @@ const Home = ({ navigation }) => {
         setSubscriptionG(null);
       }
       try {
+        Toast.show('App is Stopped', Toast.LONG);
         await AsyncStorage.setItem('enab', JSON.stringify(!isEnabled));
         await BackgroundService.stop();
-        DevSettings.reload();
+        RNExitApp.exitApp();
       } catch (error) {
         console.log('Error', error);
       }
     } else {
       try {
-        await AsyncStorage.setItem('enab', JSON.stringify(!isEnabled));
-        await BackgroundService.start(veryIntensiveTask, options);
+        const granted = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
+          PermissionsAndroid.PERMISSIONS.SEND_SMS,
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        ]);
+        if (granted['android.permission.READ_CONTACTS'] === PermissionsAndroid.RESULTS.GRANTED &&
+          granted['android.permission.SEND_SMS'] === PermissionsAndroid.RESULTS.GRANTED &&
+          granted['android.permission.POST_NOTIFICATIONS'] === PermissionsAndroid.RESULTS.GRANTED &&
+          granted['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED
+        ) {
+          await AsyncStorage.setItem('enab', JSON.stringify(!isEnabled));
+          await BackgroundService.start(veryIntensiveTask, options);
+          Toast.show('App is Started & Running in Background', Toast.LONG);
+        } else {
+          console.log('Permission denied');
+          Toast.show('Permission Denied', Toast.SHORT);
+          setIsEnabled(true);
+          if (Platform.OS === 'ios') {
+            Linking.openURL('app-settings:');
+          } else {
+            Linking.openSettings();
+          }
+        }
       } catch (error) {
         console.log('Error', error);
       }
@@ -167,9 +175,6 @@ const Home = ({ navigation }) => {
         value={isEnabled}
       />
       <View style={styles.devider}></View>
-      <TouchableOpacity title='Signup' onPress={() => navigation.navigate('Signup')}>
-        <Text style={styles.signUpText}>Signup</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   )
 }
