@@ -141,9 +141,27 @@ const Home = ({ navigation }) => {
           granted['android.permission.POST_NOTIFICATIONS'] === PermissionsAndroid.RESULTS.GRANTED &&
           granted['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED
         ) {
-          await AsyncStorage.setItem('enab', JSON.stringify(!isEnabled));
-          await BackgroundService.start(veryIntensiveTask, options);
-          Toast.show('App is Started & Running in Background', Toast.LONG);
+          try {
+            const savedContactsJson = await AsyncStorage.getItem("selectedContacts");
+            if (savedContactsJson !== null) {
+              const savedContacts = JSON.parse(savedContactsJson);
+              if (savedContacts && savedContacts.length > 0) {
+                await AsyncStorage.setItem('enab', JSON.stringify(!isEnabled));
+                await BackgroundService.start(veryIntensiveTask, options);
+                Toast.show('App is Started & Running in Background', Toast.LONG);
+              } else {
+                console.log('No Contacts Imported');
+                Toast.show('No Contacts Imported', Toast.SHORT);
+                setIsEnabled(true);
+              }
+            } else {
+              console.log('No Contacts Imported');
+              Toast.show('No Contacts Imported', Toast.SHORT);
+              setIsEnabled(true);
+            }
+          } catch (error) {
+            console.log("Error getting the state", error);
+          }
         } else {
           console.log('Permission denied');
           Toast.show('Permission Denied', Toast.SHORT);

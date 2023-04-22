@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, Button, TouchableOpacity, PermissionsAndroid, N
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
+import Geolocation from "@react-native-community/geolocation";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
-import RNCallKeep from 'react-native-callkeep';
 import { Swipeable } from 'react-native-gesture-handler';
 
 const ContactList = () => {
@@ -50,7 +50,7 @@ const ContactList = () => {
   }, [selectedContacts]);
 
   const sendSMsS = async () => {
-    try{
+    try {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.SEND_SMS,
         {
@@ -64,22 +64,40 @@ const ContactList = () => {
         },
       );
       if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        try{
-          const message = 'Fall Detected!!!';
-          for(let i = 0; i <selectedContacts.length; i++) {
+        try {
+          const { latitude, longitude } = await currentloc();
+          const date = new Date();
+          const message = `Fall Detected!!!\n\nTime - ${date}\nLocation - https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+          for (let i = 0; i < selectedContacts.length; i++) {
             DirectSMS.sendDirectSMS(selectedContacts[i].phoneNumbers, message);
           }
           console.log('Message Sent');
-        }catch(err){
+        } catch (err) {
           console.log('Error Sending Message');
-        }    
+        }
       } else {
         console.log('Permission denied');
       }
-    }catch(err){
+    } catch (err) {
       console.log(err);
     }
   }
+
+  const currentloc = async () => {
+    try {
+      return new Promise((resolve, reject) => {
+        Geolocation.getCurrentPosition((position) => {
+            const { latitude, longitude } = position.coords;
+            resolve({ latitude, longitude });
+          },
+          (error) => reject(error),
+          { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+        );
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   const renderItem = ({ item, drag, isActive }) => {
     const renderRightActions = (progress, dragX) => {
@@ -88,14 +106,14 @@ const ContactList = () => {
         outputRange: [1, 0],
         extrapolate: 'clamp',
       });
-  
+
       return (
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={() => {
             setSelectedContacts((prevData) =>
               prevData.filter((contact) => contact.recordID !== item.recordID)
-          );
+            );
           }}
         >
           <Animated.Text style={{ transform: [{ translateX: trans }] }}>
@@ -107,19 +125,19 @@ const ContactList = () => {
 
     return (
       <Swipeable renderRightActions={renderRightActions}>
-    <ScaleDecorator>
-      <TouchableOpacity
-        onLongPress={drag}
-        disabled={isActive}
-        style={styles.itemContainer}
-      >
-        <Text style={styles.txt}>{item.displayName}</Text>
-        {item.phoneNumbers && item.phoneNumbers.length > 0 && (
-          <Text style={styles.txt}>{item.phoneNumbers}</Text>
-        )}
-      </TouchableOpacity>
-    </ScaleDecorator>
-    </Swipeable>
+        <ScaleDecorator>
+          <TouchableOpacity
+            onLongPress={drag}
+            disabled={isActive}
+            style={styles.itemContainer}
+          >
+            <Text style={styles.txt}>{item.displayName}</Text>
+            {item.phoneNumbers && item.phoneNumbers.length > 0 && (
+              <Text style={styles.txt}>{item.phoneNumbers}</Text>
+            )}
+          </TouchableOpacity>
+        </ScaleDecorator>
+      </Swipeable>
     );
   };
 
