@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, Text, View, StatusBar, Switch, Linking, PermissionsAndroid, Platform } from "react-native";
+import { StyleSheet, SafeAreaView, Text, View, ScrollView, StatusBar, Switch, Linking, PermissionsAndroid, Platform } from "react-native";
 import Toast from 'react-native-simple-toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { accelerometer, gyroscope, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
@@ -181,6 +181,25 @@ const Home = ({ navigation }) => {
     setIsEnabled(previousState => !previousState);
   }
 
+  const instData = [
+    {
+      title: 'Internet',
+      describe: '\nTo identify the fall and send an alert with the location,\nYour mobile device must remain connected to the internet at all times.',
+    },
+    {
+      title: '\nPermission',
+      describe: '\nGranting access to permissions does not involve providing data to third parties.\n\nTo ensure proper functionality of the app, it is necessary to grant access to Location, Contacts, SMS, and Notification permissions.\n\nIf any of the above-mentioned permissions are denied, the fall identification feature will not be enabled and direct you to the App settings.\n\nIf you directed to the App settings, you must manually enable the permissions, as the app will not prompt you again for permission.',
+    },
+    {
+      title: '\nContacts',
+      describe: '\nTo alert the Caregiver, it is necessary to Import at least one contact to the App.',
+    },
+    {
+      title: '\nRegister',
+      describe: '\nRegistration is not required if you are only using SMS alerts.\n\nTo alert the Caregiver by an App notification, both need to register to the System.\n\nCaregiver able to Make a loud siren noise in Faller Device.',
+    },
+  ]
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar translucent backgroundColor="#2A2E30" />
@@ -192,7 +211,18 @@ const Home = ({ navigation }) => {
         onValueChange={toggleSwitch}
         value={isEnabled}
       />
-      <View style={styles.devider}></View>
+       <View style={styles.devider}></View>
+      <ScrollView style={styles.sView}>
+        <Text style={styles.header}>Instructions</Text>
+        <Text style={styles.hDesc}>Read the following instructions before enabling the App</Text>
+        <View style={styles.devider}></View>
+        {instData.map((item, index) => (
+          <React.Fragment key={index}>
+            <Text style={styles.titl}>{item.title}</Text>
+            <Text style={styles.txt}>{item.describe}</Text>
+          </React.Fragment>
+        ))}
+      </ScrollView>
     </SafeAreaView>
   )
 }
@@ -207,9 +237,29 @@ const styles = StyleSheet.create({
   devider: {
     margin: 10,
   },
-  signUpText: {
+  sView: {
+    marginHorizontal: 10,
+    marginBottom: 50,
+  },
+  header: {
+    textAlign: 'center',
     fontWeight: 'bold',
-    color: '#D1B000',
+    fontSize: 25,
+    color: '#2A2E30',
+  },
+  hDesc: {
+    textAlign: 'center',
+    fontStyle: 'italic',
+    fontSize: 12,
+    color: '#2A2E30',
+  },
+  titl: {
+    fontWeight: 'bold',
+    fontSize: 20,
+    color: '#2A2E30',
+  },
+  txt: {
+    color: '#2A2E30',
   },
 });
 
