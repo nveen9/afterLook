@@ -4,34 +4,17 @@ import Toast from 'react-native-simple-toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { accelerometer, gyroscope, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import BackgroundService from 'react-native-background-actions';
-import auth from '@react-native-firebase/auth';
 import RNExitApp from 'react-native-exit-app';
 
 setUpdateIntervalForType(SensorTypes.accelerometer, 1000);
 setUpdateIntervalForType(SensorTypes.gyroscope, 1000);
 
-const Home = ({ navigation }) => {
-  const [isSignedIn, setIsSignedIn] = useState(false);
+const Home = () => {
   const [isEnabled, setIsEnabled] = useState(false);
   const [subscriptionA, setSubscriptionA] = useState(null);
   const [subscriptionG, setSubscriptionG] = useState(null);
   const [accelerometerData, setAccelerometerData] = useState({ x: 0, y: 0, z: 0, timestamp: 0 });
   const [gyroscopeData, setGyroscopeData] = useState({ x: 0, y: 0, z: 0, timestamp: 0 });
-
-  useEffect(() => {
-    if (!isSignedIn) {
-      auth().onAuthStateChanged(user => {
-        if (!user) {
-          console.log('User not found!');
-          setIsSignedIn(false);
-        } else {
-          console.log('User found!');
-          // navigation.navigate('Home');
-          setIsSignedIn(true);
-        }
-      })
-    }
-  }, [isSignedIn]);
 
   useEffect(() => {
     if (!isEnabled) {

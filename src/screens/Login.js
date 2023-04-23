@@ -9,7 +9,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 GoogleSignin.configure({
-  webClientId: CLIENT_ID,
+  webClientId: `${CLIENT_ID}`,
 });
 
 const Login = ({ navigation }) => {
@@ -114,11 +114,11 @@ const Login = ({ navigation }) => {
             </View> */}
             <View style={styles.textInputContainer}>
               <Feather style={{ marginRight: 10 }} name='user' size={25} color='#D6AD60' />
-              <TextInput style={styles.textInput} placeholder='Email' value={email} onChangeText={text => setEmail(text)} />
+              <TextInput style={styles.textInput} placeholder='Email' value={email} onChangeText={text => setEmail(text)} placeholderTextColor='gray'/>
             </View>
             <View style={styles.textInputContainer}>
               <Feather style={{ marginRight: 10 }} name='lock' size={25} color='#D6AD60' />
-              <TextInput style={styles.textInput} placeholder='Password' value={password} secureTextEntry={secureTextEntry} onChangeText={text => setPassword(text)} />
+              <TextInput style={styles.textInput} placeholder='Password' value={password} secureTextEntry={secureTextEntry} onChangeText={text => setPassword(text)} placeholderTextColor='gray'/>
               <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
                 <MaterialIcons
                   name={
@@ -143,7 +143,7 @@ const Login = ({ navigation }) => {
             </View>
             <View style={styles.btnContainer}>
               <View style={styles.signUpContainer}>
-                <Text style={{ marginRight: 10 }}>
+                <Text style={styles.txt}>
                   Don't have an account?
                 </Text>
                 <TouchableOpacity title='Signup' onPress={() => navigation.navigate('Signup')}>
@@ -162,7 +162,7 @@ const Login = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#2E2E2E',
+    backgroundColor: '#fff',
   },
   inner: {
     padding: 20,
@@ -182,6 +182,7 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: 15,
+    color: '#2A2E30',
   },
   textInputContainer: {
     flexDirection: 'row',
@@ -195,6 +196,7 @@ const styles = StyleSheet.create({
     height: 40,
     width: '80%',
     paddingBottom: 10,
+    color:'#565b64'
   },
   btnContainer: {
     marginTop: 10,
@@ -208,6 +210,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#D1B000',
   },
+  txt: {
+    marginRight: 10, 
+    fontStyle: 'italic',
+    color: '#2A2E30'
+  }
 });
 
 export default Login
