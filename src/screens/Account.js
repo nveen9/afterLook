@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, Text, View, StatusBar } from "react-native";
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { StyleSheet, SafeAreaView, Text, TextInput, View, StatusBar, Modal, TouchableOpacity } from "react-native";
+import Toast from 'react-native-simple-toast';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+// import { TouchableOpacity } from 'react-native-gesture-handler';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -10,6 +12,11 @@ const Account = ({ navigation }) => {
     const [user, setUser] = useState(null);
     const [name, setName] = useState('');
     const [randomNum, setRandomNum] = useState(0);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [email, setEmail] = useState('');
+    const [pairCode, setPairCode] = useState('');
+    const [pairedDetails, setPairedDetails] = useState(null);
+    const [isPaired, setIsPaired] = useState(false);
 
     const isFocused = useIsFocused();
 
@@ -38,9 +45,68 @@ const Account = ({ navigation }) => {
         }
     }, [isFocused, user]);
 
-    const randomCode = async () => {
-        const rCode = Math.floor(100000 + Math.random() * 900000);
-        console.log('randomCode', rCode);
+    useEffect(() => {
+        if (isFocused) {
+            const pairedData = async () => {
+                try {
+                    const pairD = await AsyncStorage.getItem("paired");
+                    if (pairD !== null) {
+                        const us = JSON.parse(pairD);
+                        if (us !== null) {
+                            setPairedDetails(us);
+                            console.log(pairedDetails);
+                            setIsPaired(true);
+                        } else {
+                            console.log("No pairing");
+                        }
+                    } else {
+                        console.log("No pairing");
+                    }
+                } catch (error) {
+                    console.log("Error retrieving ", error);
+                }
+            };
+            pairedData();
+        }
+    }, [isFocused]);
+
+    const paringCode = async () => {
+        await firestore()
+            .collection('Users')
+            // Filter results
+            .where('email', '==', email)
+            .where('randomNum', '==', parseInt(pairCode))
+            .get()
+            .then(querySnapshot => {
+                if (querySnapshot.empty) {
+                    Toast.show('No match found', Toast.SHORT);
+                    console.log('No match found');
+                } else {
+                    querySnapshot.forEach(async (doc) => {
+                        const data = { name: doc.data().name, userid: doc.data().userId };
+                        setPairedDetails(data);
+                        try {
+                            await AsyncStorage.setItem('paired', JSON.stringify(data));
+                        } catch (error) {
+                            console.log('Error saving', error);
+                        }
+                    });
+                    setModalVisible(!modalVisible);
+                    Toast.show('Paired Success', Toast.SHORT);
+                }
+            }).catch((error) => {
+                console.log(error);
+            });
+    }
+
+    const unpair = async () => {
+        try {
+            await AsyncStorage.setItem('paired', JSON.stringify(null));
+            setIsPaired(false);
+            Toast.show('unpaired Success', Toast.SHORT);
+        } catch (error) {
+            console.log('Error saving', error);
+        }
     }
 
     const logout = async () => {
@@ -76,7 +142,7 @@ const Account = ({ navigation }) => {
                 <Text style={styles.wTxt}>Welcome</Text>
                 {user ?
                     <>
-                        <Text style={styles.eTxt}>{name}</Text>          
+                        <Text style={styles.eTxt}>{name}</Text>
                         <View style={styles.codeView}>
                             <Text style={styles.txt}>CODE</Text>
                             <View style={styles.box}>
@@ -89,9 +155,49 @@ const Account = ({ navigation }) => {
                     </>
                     :
                     <>
-                        <Text style={styles.eTxt}>No User Signed In</Text>
+                        {isPaired ?
+                            <>
+                                <Text style={styles.eTxt}>{pairedDetails.name}</Text>
+                                <View style={styles.devider}></View>
+                                <TouchableOpacity style={styles.button} title='unparing' onPress={unpair}>
+                                    <Text style={styles.signUpText}>Unpair</Text>
+                                </TouchableOpacity>
+                            </>
+                            :
+                            <>
+                                <Text style={styles.eTxt}>No User Singed In</Text>
+                                <View style={styles.devider}></View>
+                                <TouchableOpacity style={styles.button} title='Paring' onPress={() => setModalVisible(true)}>
+                                    <Text style={styles.signUpText}>Paring with Faller</Text>
+                                </TouchableOpacity>
+                                <Modal
+                                    animationType="slide"
+                                    transparent={true}
+                                    visible={modalVisible}
+                                    onRequestClose={() => { setModalVisible(!modalVisible) }}>
+                                    <View style={styles.centeredView}>
+                                        <View style={styles.modalView}>
+                                            <Text style={styles.modalText}>Paring</Text>
+                                            <View style={styles.textInputContainer}>
+                                                <TextInput style={styles.textInput} placeholder="Enter Faller's Email Address" value={email} onChangeText={text => setEmail(text)} placeholderTextColor='gray' keyboardType="email-address" />
+                                            </View>
+                                            <View style={styles.textInputContainer}>
+                                                <TextInput style={styles.textInput} placeholder='Enter Paring Code' value={pairCode} onChangeText={text => setPairCode(text)} placeholderTextColor='gray' keyboardType="numeric" />
+                                            </View>
+                                            <View style={styles.pressView}>
+                                                <TouchableOpacity style={styles.mbutton} onPress={paringCode}>
+                                                    <Text style={styles.mbuttonText}>Save</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.mbutton} onPress={() => setModalVisible(!modalVisible)}>
+                                                    <Text style={styles.mbuttonText}>Cancel</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    </View>
+                                </Modal>
+                            </>}
                         <View style={styles.devider}></View>
-                        <TouchableOpacity style={styles.button} title='Signup' onPress={() => navigation.navigate('Login')}>
+                        <TouchableOpacity style={styles.button} title='login' onPress={() => navigation.navigate('Login')}>
                             <Text style={styles.signUpText}>Login</Text>
                         </TouchableOpacity>
                     </>}
@@ -125,7 +231,7 @@ const styles = StyleSheet.create({
         color: '#B68D40',
     },
     button: {
-        width: 100,
+        width: 150,
         alignItems: 'center',
         backgroundColor: '#FFD700',
         padding: 10,
@@ -134,6 +240,7 @@ const styles = StyleSheet.create({
     signUpText: {
         fontWeight: 'bold',
         color: '#2A2E30',
+        textAlign: 'center',
     },
     codeView: {
         flex: 1,
@@ -158,6 +265,61 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         color: '#B68D40',
+    },
+    centeredView: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalView: {
+        margin: 20,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 10,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    textInputContainer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+    },
+    textInput: {
+        height: 40,
+        width: '80%',
+        margin: 10,
+        padding: 10,
+        color: '#565b64'
+    },
+    pressView: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    mbutton: {
+        width: 100,
+        alignItems: 'center',
+        backgroundColor: '#FFD700',
+        padding: 5,
+        borderRadius: 50,
+    },
+    mbuttonText: {
+        fontWeight: 'bold',
+        fontSize: 12,
+        color: '#2A2E30',
+        textAlign: 'center',
+    },
+    modalText: {
+        fontWeight: 'bold',
+        fontSize: 20,
+        color: '#2A2E30',
+        textAlign: 'center',
     },
 });
 

@@ -120,9 +120,10 @@ const Testt = () => {
                 const { delay } = taskDataArguments;
                 await new Promise(async (resolve) => {
                     for (let i = 0; BackgroundService.isRunning(); i++) {
+                        console.log('hell');
                         const snapshot = await firestore()
                             .collection('Users')
-                            .doc('K2nyCy8e1cR9miC5n2I14a9d2KU2')
+                            .doc('a')
                             .get();
                         if (snapshot.exists) {
                             if (snapshot.data().falled === true) {

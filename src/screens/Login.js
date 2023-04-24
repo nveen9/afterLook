@@ -54,12 +54,16 @@ const Login = ({ navigation }) => {
     try {
       const userRef = firestore().collection('Users').doc(user.uid);
       const userSnapshot = await userRef.get();
+      const rCode = Math.floor(100000 + Math.random() * 900000);
 
       if (!userSnapshot.exists) {
         await userRef.set({
           name: user.displayName,
           email: user.email,
           userId: user.uid,
+          falled: false,
+          paired: false,
+          randomNum: rCode,
         });
         console.log('User added!');
         navigation.navigate('TabNav');
@@ -114,11 +118,11 @@ const Login = ({ navigation }) => {
             </View> */}
             <View style={styles.textInputContainer}>
               <Feather style={{ marginRight: 10 }} name='user' size={25} color='#D6AD60' />
-              <TextInput style={styles.textInput} placeholder='Email' value={email} onChangeText={text => setEmail(text)} placeholderTextColor='gray'/>
+              <TextInput style={styles.textInput} placeholder='Email' value={email} onChangeText={text => setEmail(text)} placeholderTextColor='gray' keyboardType="email-address"/>
             </View>
             <View style={styles.textInputContainer}>
               <Feather style={{ marginRight: 10 }} name='lock' size={25} color='#D6AD60' />
-              <TextInput style={styles.textInput} placeholder='Password' value={password} secureTextEntry={secureTextEntry} onChangeText={text => setPassword(text)} placeholderTextColor='gray'/>
+              <TextInput style={styles.textInput} placeholder='Password' value={password} secureTextEntry={secureTextEntry} onChangeText={text => setPassword(text)} placeholderTextColor='gray' />
               <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
                 <MaterialIcons
                   name={
@@ -196,7 +200,7 @@ const styles = StyleSheet.create({
     height: 40,
     width: '80%',
     paddingBottom: 10,
-    color:'#565b64'
+    color: '#565b64'
   },
   btnContainer: {
     marginTop: 10,
@@ -211,7 +215,7 @@ const styles = StyleSheet.create({
     color: '#D1B000',
   },
   txt: {
-    marginRight: 10, 
+    marginRight: 10,
     fontStyle: 'italic',
     color: '#2A2E30'
   }
