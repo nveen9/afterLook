@@ -125,6 +125,8 @@ const Account = ({ navigation }) => {
                                 await BackgroundService.updateNotification({ taskDesc: 'Alert!'}); // Only Android, iOS will ignore this call      
                                 await sleep(delay);
                             } else {
+                                whoosh.stop();
+                                await BackgroundService.updateNotification({ taskDesc: 'No Notifications' }); // Only Android, iOS will ignore this call  
                                 await sleep(delay);
                             }
                         } else {
@@ -160,7 +162,6 @@ const Account = ({ navigation }) => {
 
     async function handleOpenURL(evt) {
         // Will be called when the notification is pressed
-        await BackgroundService.stop();
         whoosh.stop();
         setLoca(true);
         // await firestore()
@@ -353,7 +354,6 @@ const Account = ({ navigation }) => {
                                 <Text style={styles.signUpText}>Unpair</Text>
                             </TouchableOpacity>
                             {loca ? <>
-                            <View style={styles.devider}></View>
                             <TouchableOpacity style={styles.button} title='getL' onPress={getl}>
                                 <Text style={styles.signUpText}>Get Location</Text>
                             </TouchableOpacity></>: <></>}
