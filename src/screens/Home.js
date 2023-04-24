@@ -53,11 +53,16 @@ const Home = () => {
       await new Promise(async (resolve) => {
         const subA = accelerometer.subscribe(({ x, y, z, timestamp }) => {
           setAccelerometerData({ x, y, z, timestamp });
-          console.log(timestamp);
+          console.log('acc x ', x);
+          console.log('acc y ', y);
+          console.log('acc z ', z);
         });
         setSubscriptionA(subA);
         const subG = gyroscope.subscribe(({ x, y, z, timestamp }) => {
           setGyroscopeData({ x, y, z, timestamp });
+          console.log('gyr x ', x);
+          console.log('gyr y ', y);
+          console.log('gyr z ', z)
         });
         setSubscriptionG(subG);
         await BackgroundService.updateNotification({ taskDesc: 'Reading' }); // Only Android, iOS will ignore this call      

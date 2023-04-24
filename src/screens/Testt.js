@@ -120,7 +120,6 @@ const Testt = () => {
                 const { delay } = taskDataArguments;
                 await new Promise(async (resolve) => {
                     for (let i = 0; BackgroundService.isRunning(); i++) {
-                        console.log('hell');
                         const snapshot = await firestore()
                             .collection('Users')
                             .doc('a')

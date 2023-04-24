@@ -37,6 +37,7 @@
           <category android:name="android.intent.category.DEFAULT" />
           <category android:name="android.intent.category.BROWSABLE" />
           <data android:scheme="backScheme" />
+          <data android:scheme="https" android:host="*" />
       </intent-filter>
       </activity>
       <service android:name="com.asterinet.react.bgactions.RNBackgroundActionsTask" />
