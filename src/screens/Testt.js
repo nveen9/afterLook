@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Button, Linking, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {parse, stringify, toJSON, fromJSON} from 'flatted';
+import firestore from '@react-native-firebase/firestore';
+import { parse, stringify, toJSON, fromJSON } from 'flatted';
 import { accelerometer, gyroscope, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import BackgroundService from 'react-native-background-actions';
+import Sound from 'react-native-sound';
+import alertSound from '../sounds/warning.mp3';
 
 setUpdateIntervalForType(SensorTypes.accelerometer, 1000);
 setUpdateIntervalForType(SensorTypes.gyroscope, 1000);
@@ -19,20 +22,20 @@ const Testt = () => {
     useEffect(() => {
         const getEnab = async () => {
             try {
-              const subA = await AsyncStorage.getItem("subA");
-              const subG = await AsyncStorage.getItem("subG");
-              if (subA !== null && subG !== null) {
-                const subAA = parse(subA);
-                const subGG = parse(subG);
-                console.log('s',subAA)
-              } else {
-                console.log("No saved state");
-              }
+                const subA = await AsyncStorage.getItem("subA");
+                const subG = await AsyncStorage.getItem("subG");
+                if (subA !== null && subG !== null) {
+                    const subAA = parse(subA);
+                    const subGG = parse(subG);
+                    console.log('s', subAA)
+                } else {
+                    console.log("No saved state");
+                }
             } catch (error) {
-              console.log("Error getting the state", error);
+                console.log("Error getting the state", error);
             }
-          };
-          getEnab();
+        };
+        getEnab();
     }, []);
 
     //Background task
@@ -89,6 +92,63 @@ const Testt = () => {
         }
     };
 
+    Sound.setCategory('Ambient');
+
+    var whoosh = new Sound(alertSound, error => {
+        if (error) {
+            console.log('failed to load the sound', error);
+            return;
+        }
+        console.log('duration in seconds: ' + whoosh.getDuration() + 'number of channels: ' + whoosh.getNumberOfChannels());
+    });
+
+    const veryIntensiveTask1 = async (taskDataArguments) => {
+        try {
+            const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+                {
+                    title: 'After Look App Notification Permission',
+                    message:
+                        'After Look App needs access to your Notification ' +
+                        'In order to run the app background.',
+                    buttonNeutral: 'Ask Me Later',
+                    buttonNegative: 'Cancel',
+                    buttonPositive: 'OK',
+                },
+            );
+            if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+                const { delay } = taskDataArguments;
+                await new Promise(async (resolve) => {
+                    for (let i = 0; BackgroundService.isRunning(); i++) {
+                        const snapshot = await firestore()
+                            .collection('Users')
+                            .doc('K2nyCy8e1cR9miC5n2I14a9d2KU2')
+                            .get();
+                        if (snapshot.exists) {
+                            if (snapshot.data().falled === true) {
+                                whoosh.play();
+                                whoosh.setVolume(1);
+                                await BackgroundService.updateNotification({ taskDesc: 'Notif' + snapshot.data().falled }); // Only Android, iOS will ignore this call      
+                                await sleep(delay);
+                            } else {
+                                await BackgroundService.updateNotification({ taskDesc: 'Notif' }); // Only Android, iOS will ignore this call      
+                                await sleep(delay);
+                            }
+                        } else {
+                            await BackgroundService.updateNotification({ taskDesc: 'Notif' }); // Only Android, iOS will ignore this call      
+                            await sleep(delay);
+                        }
+                    }
+                });
+            } else {
+                console.log('Permission denied');
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    };
+
+
     const options = {
         taskName: 'After Look',
         taskTitle: 'Getting Sensor Data',
@@ -119,6 +179,11 @@ const Testt = () => {
             setSubscriptionG(null);
         }
         await BackgroundService.stop();
+        whoosh.stop();
+    }
+
+    const getNotif = async () => {
+        await BackgroundService.start(veryIntensiveTask1, options);
     }
 
     Linking.addEventListener('url', handleOpenURL);
@@ -126,6 +191,7 @@ const Testt = () => {
     function handleOpenURL(evt) {
         // Will be called when the notification is pressed
         console.log(evt.url);
+        whoosh.stop();
         // do something
     }
     // 
@@ -137,13 +203,18 @@ const Testt = () => {
             <Text>y: {accelerometerData.y}</Text>
             <Text>z: {accelerometerData.z}</Text>
             <Text>time: {accelerometerData.timestamp}</Text>
+            <View style={styles.divider}></View>
             <Text style={styles.title}>Gyroscope:</Text>
             <Text>x: {gyroscopeData.x.toFixed(2)}</Text>
             <Text>y: {gyroscopeData.y}</Text>
             <Text>z: {gyroscopeData.z}</Text>
             <Text>time: {gyroscopeData.timestamp}</Text>
+            <View style={styles.divider}></View>
             <Button title="Start" onPress={startBack} />
+            <View style={styles.divider}></View>
             <Button title="Stop" onPress={stopBack} />
+            <View style={styles.divider}></View>
+            <Button title="Get Notification" onPress={getNotif} />
         </View>
     );
 }
@@ -154,6 +225,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'black',
         alignItems: 'center',
         justifyContent: 'center'
+    },
+    divider: {
+        margin: 10,
     },
     title: {
         fontWeight: 'bold',

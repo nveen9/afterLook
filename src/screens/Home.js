@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   },
   sView: {
     marginHorizontal: 10,
-    marginBottom: 50,
+    marginBottom: '3%',
   },
   header: {
     textAlign: 'center',

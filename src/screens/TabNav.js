@@ -19,11 +19,11 @@ const TabNav = ({navigation}) => {
                 tabBarShowLabel: false,
                 tabBarStyle: [
                     {
-                        display: 'flex',
+                        // display: 'flex',
                         backgroundColor: '#FFFF',
-                        borderTopLeftRadius: 20,
-                        borderTopRightRadius: 20,
-                        position: 'absolute'
+                        // borderTopLeftRadius: 20,
+                        // borderTopRightRadius: 20,
+                        // position: 'absolute'
                     },
                     null
                 ]
