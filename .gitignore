@@ -65,3 +65,6 @@ yarn-error.log
 .env
 
 android/app/google-services.json
+android/app/src/main/AndroidManifest.xml
+android/gradle.properties
+android/app/src/main/assets

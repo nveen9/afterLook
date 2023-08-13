@@ -1,12 +1,13 @@
 import React from 'react';
-import { Text } from "react-native";
 import Ionic from 'react-native-vector-icons/Ionicons';
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import Home from './Home';
 import ContactList from './ContactList';
 import Account from './Account';
+import Caregiver from './Caregiver';
 import Test from './Testt';
+import MapTest from './MapTest';
 
 const TabNav = ({navigation}) => {
     const Tab = createBottomTabNavigator();
@@ -67,10 +68,27 @@ const TabNav = ({navigation}) => {
                     <Ionic name={focused ? "person" : "person-outline"} color={color} size={size} />
                 ),
             }}/>
+            <Tab.Screen name="Caregiver" component={Caregiver} options={{
+                title: 'Caregiver',
+                headerTintColor: '#B68D40',
+                headerStyle: {
+                    backgroundColor: '#2A2E30',
+                },
+                tabBarLabel: 'Account',
+                tabBarIcon: ({ focused, color, size }) => (
+                    <Ionic name={focused ? "people" : "people-outline"} color={color} size={size} />
+                ),
+            }}/>
             <Tab.Screen name="Test" component={Test} options={{
                 tabBarLabel: 'Test',
                 tabBarIcon: ({ focused, color, size }) => (
                     <Ionic name={focused ? "settings" : "settings-outline"} color={color} size={size} />
+                ),
+            }}/>
+            <Tab.Screen name="Map" component={MapTest} options={{
+                tabBarLabel: 'Map',
+                tabBarIcon: ({ focused, color, size }) => (
+                    <Ionic name={focused ? "map" : "map-outline"} color={color} size={size} />
                 ),
             }}/>
         </Tab.Navigator>

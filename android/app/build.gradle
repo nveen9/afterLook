@@ -118,6 +118,15 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            storeFile file(MYAPP_RELEASE_STORE_FILE)
+            Scanner myObj = new Scanner(System.in)
+            System.out.println("Enter Store Password")
+            storePassword myObj.nextLine()
+            keyAlias MYAPP_RELEASE_KEY_ALIAS
+            System.out.println("Enter key Password")
+            keyPassword myObj.nextLine()
+        }
     }
     buildTypes {
         debug {
