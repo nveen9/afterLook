@@ -49,7 +49,7 @@ const CareGiver = ({ navigation }) => {
   //   console.log('I am being closed :(');
   // });
 
-  Sound.setCategory('Ambient');
+  Sound.setCategory('Playback');
 
   var whoosh = new Sound(alertSound, error => {
     if (error) {
@@ -124,26 +124,11 @@ const CareGiver = ({ navigation }) => {
       delay: 1000,
     },
   };
-  Linking.addEventListener('backScheme://chat/jane', handleOpenURL);
-
-  async function handleOpenURL(event) {
-    // Will be called when the notification is pressed
-    console.log(event.url);
-  }
   // 
 
   const getl = async () => {
     const doc = await firestore().collection('Users').doc(pairedDetails.userid).get();
     if (doc.data().falled === true) {
-      await firestore()
-        .collection('Users')
-        .doc(pairedDetails.userid)
-        .update({
-          notify: false,
-        })
-        .then(() => {
-          console.log('Notify closed!');
-        });
       whoosh.stop();
       const geopoint = doc.data().geoL;
 

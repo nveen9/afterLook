@@ -5,16 +5,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { accelerometer, gyroscope, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import BackgroundService from 'react-native-background-actions';
 import RNExitApp from 'react-native-exit-app';
+import firestore from '@react-native-firebase/firestore';
+import axios from 'axios';
 
-setUpdateIntervalForType(SensorTypes.accelerometer, 1000);
-setUpdateIntervalForType(SensorTypes.gyroscope, 1000);
+setUpdateIntervalForType(SensorTypes.accelerometer, 5);
+setUpdateIntervalForType(SensorTypes.gyroscope, 5);
 
-const Home = () => {
+const Home = ({ navigation }) => {
   const [isEnabled, setIsEnabled] = useState(false);
   const [subscriptionA, setSubscriptionA] = useState(null);
   const [subscriptionG, setSubscriptionG] = useState(null);
-  const [accelerometerData, setAccelerometerData] = useState({ x: 0, y: 0, z: 0, timestamp: 0 });
-  const [gyroscopeData, setGyroscopeData] = useState({ x: 0, y: 0, z: 0, timestamp: 0 });
+  const [accData, setAccData] = useState([]);
+  const [gyroData, setGyroData] = useState([]);
 
   useEffect(() => {
     if (!isEnabled) {
@@ -23,7 +25,6 @@ const Home = () => {
           const enab = await AsyncStorage.getItem("enab");
           if (enab !== null) {
             const enabb = JSON.parse(enab);
-            console.log('ee', enabb);
             setIsEnabled(enabb);
           } else {
             console.log("No saved state");
@@ -36,12 +37,67 @@ const Home = () => {
     }
   }, [isEnabled]);
 
+  useEffect(() => {
+    const pairedData = async () => {
+      try {
+        const pairD = await AsyncStorage.getItem("paired");
+        if (pairD !== null) {
+          const us = JSON.parse(pairD);
+          if (us !== null) {
+            const doc = await firestore().collection('Users').doc(us.userid).get();
+            if (doc.data().falled === true) {
+              await firestore()
+                .collection('Users')
+                .doc(us.userid)
+                .update({
+                  notify: false,
+                })
+                .then(() => {
+                  navigation.navigate('Map');
+                });
+            }
+          } else {
+            console.log("No pairing");
+          }
+        } else {
+          console.log("No pairing");
+        }
+      } catch (error) {
+        console.log("Error retrieving ", error);
+      }
+    };
+    pairedData();
+  }, []);
+
+  useEffect(() => {
+    // if (accData.length == 800) {
+    //   const predict = async () => {
+    //     const requestBody = {
+    //       data: accData,
+    //       gyData: gyroData
+    //     };
+
+    //     console.log('data:', requestBody);
+    //     await axios.post('http://localhost:5000/predict', requestBody)
+    //       .then(response => {
+    //         setAccData([]);
+    //         setGyroData([]);
+    //         console.log('Response data:', response.data);
+    //       })
+    //       .catch(err => {
+    //         console.error('Error:', err);
+    //       });
+    //   };
+    //   predict();
+    // }
+  }, [accData]);
+
   //Background task
   const sleep = (time) => new Promise((resolve) => setTimeout(() => resolve(), time));
 
-  BackgroundService.on('expiration', () => {
-    console.log('I am being closed :(');
-  });
+  // BackgroundService.on('expiration', () => {
+  //   console.log('I am being closed :(');
+  // });
 
   // You can do anything in your task such as network requests, timers and so on,
   // as long as it doesn't touch UI. Once your task completes (i.e. the promise is resolved),
@@ -51,18 +107,28 @@ const Home = () => {
     try {
       const { delay } = taskDataArguments;
       await new Promise(async (resolve) => {
-        const subA = accelerometer.subscribe(({ x, y, z, timestamp }) => {
-          setAccelerometerData({ x, y, z, timestamp });
-          console.log('acc x ', x);
-          console.log('acc y ', y);
-          console.log('acc z ', z);
+        const subA = accelerometer.subscribe((data) => {
+          // setAccData((prevData) => [...prevData, data]);
+          setAccData((prevData) => {
+            prevData = [...prevData, data];
+            const firstTimestamp = Math.round(prevData[0].timestamp / 1000);
+            const targetTime = firstTimestamp + 5;
+            const currTime = Math.round(prevData[prevData.length - 1].timestamp / 1000);
+            let isCompleted = false;
+            // Check if the target time exists in the final index
+            if (currTime === targetTime) {
+              if (!isCompleted) {
+                console.log('success');
+                isCompleted = true;
+              }     
+              prevData = [];
+            }
+            return prevData;
+          });
         });
         setSubscriptionA(subA);
-        const subG = gyroscope.subscribe(({ x, y, z, timestamp }) => {
-          setGyroscopeData({ x, y, z, timestamp });
-          console.log('gyr x ', x);
-          console.log('gyr y ', y);
-          console.log('gyr z ', z)
+        const subG = gyroscope.subscribe((data) => {
+          setGyroData((prevData) => [...prevData, data]);
         });
         setSubscriptionG(subG);
         await BackgroundService.updateNotification({ taskDesc: 'Reading' }); // Only Android, iOS will ignore this call      
@@ -90,10 +156,12 @@ const Home = () => {
 
   Linking.addEventListener('url', handleOpenURL);
 
-  function handleOpenURL(evt) {
+  function handleOpenURL(event) {
     // Will be called when the notification is pressed
-    console.log(evt.url);
-    // do something
+    const { url } = event;
+    if (url.endsWith('/chat/jane')) {
+      console.log(event.url)
+    }
   }
   //
 
@@ -199,7 +267,7 @@ const Home = () => {
         onValueChange={toggleSwitch}
         value={isEnabled}
       />
-       <View style={styles.devider}></View>
+      <View style={styles.devider}></View>
       <ScrollView style={styles.sView}>
         <Text style={styles.header}>Instructions</Text>
         <Text style={styles.hDesc}>Read the following instructions before enabling the App</Text>

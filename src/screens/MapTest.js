@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback  } from 'react'
 import { View, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { debounce } from 'lodash';
@@ -34,39 +34,52 @@ const MapScreen = () => {
         }
     }, [pairedDetails]);
 
+    const pairedData = useCallback(async () => {
+        try {
+            const pairD = await AsyncStorage.getItem("paired");
+            if (pairD !== null) {
+                const us = JSON.parse(pairD);
+                if (us !== null) {
+                    setPairedDetails(us);
+                    const doc = await firestore().collection('Users').doc(us.userid).get();
+                    if (doc.data().falled === true) {
+                        await firestore()
+                            .collection('Users')
+                            .doc(us.userid)
+                            .update({
+                                notify: false,
+                            })
+                            .then(() => {
+                                console.log('Notify Updated');
+                            });
+                    }
+                } else {
+                    console.log("No pairing");
+                }
+            } else {
+                console.log("No pairing");
+            }
+        } catch (error) {
+            console.log("Error retrieving ", error);
+        }
+    },[]);
+
     useEffect(() => {
         if (isFocused) {
-            const pairedData = async () => {
-                try {
-                    const pairD = await AsyncStorage.getItem("paired");
-                    if (pairD !== null) {
-                        const us = JSON.parse(pairD);
-                        if (us !== null) {
-                            setPairedDetails(us);
-                        } else {
-                            console.log("No pairing");
-                        }
-                    } else {
-                        console.log("No pairing");
-                    }
-                } catch (error) {
-                    console.log("Error retrieving ", error);
-                }
-            };
             pairedData();
         }
-    }, [isFocused]);
+    }, [isFocused, pairedData]);
 
     const getCurrentLocation = async () => {
         const doc = await firestore().collection('Users').doc(pairedDetails.userid).get();
         if (doc.data().falled === true) {
-        const geopoint = doc.data().geoL;
-        setCurrentLocation({
-            latitude: geopoint.latitude,
-            longitude: geopoint.longitude,
-        })
-        console.log(geopoint.latitude, geopoint.longitude);
-    }
+            const geopoint = doc.data().geoL;
+            setCurrentLocation({
+                latitude: geopoint.latitude,
+                longitude: geopoint.longitude,
+            })
+            console.log(geopoint.latitude, geopoint.longitude);
+        }
     };
 
     const onRegionChange = debounce(region => {

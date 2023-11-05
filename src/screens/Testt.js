@@ -1,42 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Button, Linking, PermissionsAndroid } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import firestore from '@react-native-firebase/firestore';
-import { parse, stringify, toJSON, fromJSON } from 'flatted';
 import { accelerometer, gyroscope, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import BackgroundService from 'react-native-background-actions';
-import Sound from 'react-native-sound';
-import alertSound from '../sounds/warning.mp3';
+import axios from 'axios';
 
-setUpdateIntervalForType(SensorTypes.accelerometer, 1000);
-setUpdateIntervalForType(SensorTypes.gyroscope, 1000);
+setUpdateIntervalForType(SensorTypes.accelerometer, 5);
+setUpdateIntervalForType(SensorTypes.gyroscope, 5);
 
 const Testt = () => {
-
-    const [enb, setEnb] = useState(true);
     const [subscriptionA, setSubscriptionA] = useState(null);
     const [subscriptionG, setSubscriptionG] = useState(null);
     const [accelerometerData, setAccelerometerData] = useState({ x: 0, y: 0, z: 0, timestamp: 0 });
+    const [accData, setAccData] = useState([]);
     const [gyroscopeData, setGyroscopeData] = useState({ x: 0, y: 0, z: 0, timestamp: 0 });
+    const [gyroData, setGyroData] = useState([]);
+    const [seconds, setSeconds] = useState(0);
+    const [pred, setPred] = useState(false);
 
     useEffect(() => {
-        const getEnab = async () => {
-            try {
-                const subA = await AsyncStorage.getItem("subA");
-                const subG = await AsyncStorage.getItem("subG");
-                if (subA !== null && subG !== null) {
-                    const subAA = parse(subA);
-                    const subGG = parse(subG);
-                    console.log('s', subAA)
+            const predict = async () => {
+                const requestBody = {
+                    data: accData,
+                    gyData: gyroData
+                };
+
+                console.log('data:', requestBody);
+                setAccData([]);
+                setGyroData([]);
+                await axios.post('http://127.0.0.1:5000/testt', requestBody)
+                    .then(response => {
+                        setAccData([]);
+                        setGyroData([]);
+                        console.log('Response data:', response.data);
+                    })
+                    .catch(err => {
+                        console.error('Error:', err);
+                    });
+            };
+
+            // Use setInterval to run the predict function every 6 seconds
+            const interval = setInterval(() => {
+                if (seconds === 6) {
+                    console.log('data:');
+                    predict();
+                    setSeconds(0); // Reset the time to 0
                 } else {
-                    console.log("No saved state");
+                    console.log('data1:');
+                    setSeconds(seconds + 1); // Increment the time
                 }
-            } catch (error) {
-                console.log("Error getting the state", error);
-            }
-        };
-        getEnab();
-    }, []);
+            }, 1000); // 1000 milliseconds = 1 second
+
+            return () => {
+                // Cleanup: Clear the interval when the component unmounts
+                clearInterval(interval);
+            };
+    }, [seconds, accData]);
 
     //Background task
     const sleep = (time) => new Promise((resolve) => setTimeout(() => resolve(), time));
@@ -51,6 +69,7 @@ const Testt = () => {
     // or there is a foreground app).
     const veryIntensiveTask = async (taskDataArguments) => {
         try {
+            setPred(true);
             const granted = await PermissionsAndroid.request(
                 PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
                 {
@@ -66,21 +85,16 @@ const Testt = () => {
             if (granted === PermissionsAndroid.RESULTS.GRANTED) {
                 const { delay } = taskDataArguments;
                 await new Promise(async (resolve) => {
-                    const subA = accelerometer.subscribe(({ x, y, z, timestamp }) => {
-                        setAccelerometerData({ x, y, z, timestamp });
-                        console.log(timestamp);
+                    const subA = accelerometer.subscribe((data) => {
+                        setAccData((prevData) => [...prevData, data]);
+                        setAccelerometerData(data);
                     });
                     setSubscriptionA(subA);
-                    const subG = gyroscope.subscribe(({ x, y, z, timestamp }) => {
-                        setGyroscopeData({ x, y, z, timestamp });
+                    const subG = gyroscope.subscribe((data) => {
+                        setGyroData((prevData) => [...prevData, data]);
+                        setGyroscopeData(data);
                     });
                     setSubscriptionG(subG);
-                    try {
-                        await AsyncStorage.setItem('subA', stringify(subA));
-                        await AsyncStorage.setItem('subG', stringify(subG));
-                    } catch (error) {
-                        console.log('Error saving state', error);
-                    }
                     await BackgroundService.updateNotification({ taskDesc: 'Reading' }); // Only Android, iOS will ignore this call      
                     await sleep(delay);
                 });
@@ -91,63 +105,6 @@ const Testt = () => {
             console.log(err);
         }
     };
-
-    Sound.setCategory('Ambient');
-
-    var whoosh = new Sound(alertSound, error => {
-        if (error) {
-            console.log('failed to load the sound', error);
-            return;
-        }
-        console.log('duration in seconds: ' + whoosh.getDuration() + 'number of channels: ' + whoosh.getNumberOfChannels());
-    });
-
-    const veryIntensiveTask1 = async (taskDataArguments) => {
-        try {
-            const granted = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-                {
-                    title: 'After Look App Notification Permission',
-                    message:
-                        'After Look App needs access to your Notification ' +
-                        'In order to run the app background.',
-                    buttonNeutral: 'Ask Me Later',
-                    buttonNegative: 'Cancel',
-                    buttonPositive: 'OK',
-                },
-            );
-            if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-                const { delay } = taskDataArguments;
-                await new Promise(async (resolve) => {
-                    for (let i = 0; BackgroundService.isRunning(); i++) {
-                        const snapshot = await firestore()
-                            .collection('Users')
-                            .doc('a')
-                            .get();
-                        if (snapshot.exists) {
-                            if (snapshot.data().falled === true) {
-                                whoosh.play();
-                                whoosh.setVolume(1);
-                                await BackgroundService.updateNotification({ taskDesc: 'Notif' + snapshot.data().falled }); // Only Android, iOS will ignore this call      
-                                await sleep(delay);
-                            } else {
-                                await BackgroundService.updateNotification({ taskDesc: 'Notif' }); // Only Android, iOS will ignore this call      
-                                await sleep(delay);
-                            }
-                        } else {
-                            await BackgroundService.updateNotification({ taskDesc: 'Notif' }); // Only Android, iOS will ignore this call      
-                            await sleep(delay);
-                        }
-                    }
-                });
-            } else {
-                console.log('Permission denied');
-            }
-        } catch (err) {
-            console.log(err);
-        }
-    };
-
 
     const options = {
         taskName: 'After Look',
@@ -160,7 +117,7 @@ const Testt = () => {
         color: '#ff00ff',
         linkingURI: 'backScheme://chat/jane', // See Deep Linking for more info
         parameters: {
-            delay: 1000,
+            delay: 5,
         },
     };
 
@@ -179,11 +136,6 @@ const Testt = () => {
             setSubscriptionG(null);
         }
         await BackgroundService.stop();
-        whoosh.stop();
-    }
-
-    const getNotif = async () => {
-        await BackgroundService.start(veryIntensiveTask1, options);
     }
 
     Linking.addEventListener('url', handleOpenURL);
@@ -191,8 +143,6 @@ const Testt = () => {
     function handleOpenURL(evt) {
         // Will be called when the notification is pressed
         console.log(evt.url);
-        whoosh.stop();
-        // do something
     }
     // 
 
@@ -213,8 +163,6 @@ const Testt = () => {
             <Button title="Start" onPress={startBack} />
             <View style={styles.divider}></View>
             <Button title="Stop" onPress={stopBack} />
-            <View style={styles.divider}></View>
-            <Button title="Get Notification" onPress={getNotif} />
         </View>
     );
 }

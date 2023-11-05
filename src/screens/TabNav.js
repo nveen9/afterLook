@@ -79,12 +79,12 @@ const TabNav = ({navigation}) => {
                     <Ionic name={focused ? "people" : "people-outline"} color={color} size={size} />
                 ),
             }}/>
-            <Tab.Screen name="Test" component={Test} options={{
+            {/* <Tab.Screen name="Test" component={Test} options={{
                 tabBarLabel: 'Test',
                 tabBarIcon: ({ focused, color, size }) => (
                     <Ionic name={focused ? "settings" : "settings-outline"} color={color} size={size} />
                 ),
-            }}/>
+            }}/> */}
             <Tab.Screen name="Map" component={MapTest} options={{
                 tabBarLabel: 'Map',
                 tabBarIcon: ({ focused, color, size }) => (

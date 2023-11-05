@@ -64,6 +64,7 @@ const Account = ({ navigation }) => {
             .doc(user.uid)
             .update({
                 falled: false,
+                notify: false,
             })
             .then(() => {
                 console.log('Location closed!');

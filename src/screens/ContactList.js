@@ -163,7 +163,7 @@ const ContactList = () => {
             <Text style={styles.ordertxt}>Reorder the Contacts as Priority</Text>
             <View style={styles.nocont}>
               <Text style={styles.dordertxt}>Hold to drag</Text>
-              <Button title="Send" onPress={sendSMsS} />
+              {/* <Button title="Send" onPress={sendSMsS} /> */}
             </View>
           </View>
           <DraggableFlatList
