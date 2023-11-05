@@ -107,9 +107,10 @@ const Home = ({ navigation }) => {
     try {
       const { delay } = taskDataArguments;
       await new Promise(async (resolve) => {
+        let prevData = [];
         const subA = accelerometer.subscribe((data) => {
           // setAccData((prevData) => [...prevData, data]);
-          setAccData((prevData) => {
+
             prevData = [...prevData, data];
             const firstTimestamp = Math.round(prevData[0].timestamp / 1000);
             const targetTime = firstTimestamp + 5;
@@ -118,13 +119,13 @@ const Home = ({ navigation }) => {
             // Check if the target time exists in the final index
             if (currTime === targetTime) {
               if (!isCompleted) {
-                console.log('success');
+                console.log(prevData);
                 isCompleted = true;
-              }     
+              }
               prevData = [];
             }
             return prevData;
-          });
+     
         });
         setSubscriptionA(subA);
         const subG = gyroscope.subscribe((data) => {
