@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, SafeAreaView, Text, View, ScrollView, StatusBar, Switch, Linking, PermissionsAndroid, Platform } from "react-native";
 import Toast from 'react-native-simple-toast';
+import { FLASK_API } from '@env'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { accelerometer, gyroscope, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import BackgroundService from 'react-native-background-actions';
@@ -8,15 +9,11 @@ import RNExitApp from 'react-native-exit-app';
 import firestore from '@react-native-firebase/firestore';
 import axios from 'axios';
 
-setUpdateIntervalForType(SensorTypes.accelerometer, 5);
-setUpdateIntervalForType(SensorTypes.gyroscope, 5);
+setUpdateIntervalForType(SensorTypes.accelerometer, 10);
+setUpdateIntervalForType(SensorTypes.gyroscope, 10);
 
 const Home = ({ navigation }) => {
   const [isEnabled, setIsEnabled] = useState(false);
-  const [subscriptionA, setSubscriptionA] = useState(null);
-  const [subscriptionG, setSubscriptionG] = useState(null);
-  const [accData, setAccData] = useState([]);
-  const [gyroData, setGyroData] = useState([]);
 
   useEffect(() => {
     if (!isEnabled) {
@@ -69,29 +66,6 @@ const Home = ({ navigation }) => {
     pairedData();
   }, []);
 
-  useEffect(() => {
-    // if (accData.length == 800) {
-    //   const predict = async () => {
-    //     const requestBody = {
-    //       data: accData,
-    //       gyData: gyroData
-    //     };
-
-    //     console.log('data:', requestBody);
-    //     await axios.post('http://localhost:5000/predict', requestBody)
-    //       .then(response => {
-    //         setAccData([]);
-    //         setGyroData([]);
-    //         console.log('Response data:', response.data);
-    //       })
-    //       .catch(err => {
-    //         console.error('Error:', err);
-    //       });
-    //   };
-    //   predict();
-    // }
-  }, [accData]);
-
   //Background task
   const sleep = (time) => new Promise((resolve) => setTimeout(() => resolve(), time));
 
@@ -106,35 +80,79 @@ const Home = ({ navigation }) => {
   const veryIntensiveTask = async (taskDataArguments) => {
     try {
       const { delay } = taskDataArguments;
-      await new Promise(async (resolve) => {
-        let prevData = [];
-        const subA = accelerometer.subscribe((data) => {
-          // setAccData((prevData) => [...prevData, data]);
 
-            prevData = [...prevData, data];
-            const firstTimestamp = Math.round(prevData[0].timestamp / 1000);
-            const targetTime = firstTimestamp + 5;
-            const currTime = Math.round(prevData[prevData.length - 1].timestamp / 1000);
-            let isCompleted = false;
-            // Check if the target time exists in the final index
-            if (currTime === targetTime) {
-              if (!isCompleted) {
-                console.log(prevData);
-                isCompleted = true;
-              }
-              prevData = [];
-            }
-            return prevData;
-     
+      const collectData = async (sensor, duration) => {
+        let data = [];
+        let startTime = Date.now();
+        let endTime = startTime + duration;
+
+        const subscription = sensor.subscribe((sensorData) => {
+          data.push(sensorData);
+          const currentTime = Date.now();
+          if (currentTime >= endTime) {
+            subscription.unsubscribe();
+          }
         });
-        setSubscriptionA(subA);
-        const subG = gyroscope.subscribe((data) => {
-          setGyroData((prevData) => [...prevData, data]);
+
+        await new Promise((resolve) => setTimeout(resolve, duration));
+
+        return data;
+      };
+
+      while (true) {
+        const [accData, gyroData] = await Promise.all([
+          collectData(accelerometer, 6000), // 6 seconds
+          collectData(gyroscope, 6000), // 6 seconds
+        ]);
+
+        // Convert the timestamps to seconds
+        const accDataInSeconds = accData.map(item => {
+          return {
+            ...item,
+            timestamp: (item.timestamp - accData[0].timestamp) / 1000, // Convert to seconds
+          };
         });
-        setSubscriptionG(subG);
+        // Additional pre-processing step
+        const accMagnitudeThreshold = 15.0;
+
+        // Extract data between 3-4 seconds cus this the best time period
+        const startTime = 3.0;
+        const endTime = 4.0;
+        const accDataIn4th = accDataInSeconds.filter(
+          (data) =>
+            data.timestamp >= startTime &&
+            data.timestamp < endTime
+        );
+        // Find the highest acceleration magnitude value
+        let accMagnitude4th = -Infinity;
+
+        accDataIn4th.forEach(data => {
+          const accelerationMagnitude = Math.sqrt(data.x ** 2 + data.y ** 2 + data.z ** 2);
+          accMagnitude4th = Math.max(accMagnitude4th, accelerationMagnitude);
+        });
+        console.log('Highest Acceleration magnitude: ', accMagnitude4th)
+        if (accMagnitude4th > accMagnitudeThreshold) {
+          const requestBody = {
+            data: accData,
+            gyData: gyroData,
+          };
+          console.log('Sending...')
+          await axios.post(`${FLASK_API}/predict`, requestBody)
+            .then(response => {
+              console.log('Sent and getting...')
+              console.log('Response data:', response.data);
+            })
+            .catch(err => {
+              console.error('Error:', err);
+            });
+
+        } else {
+          console.log('Threshold is lower');
+        }
+
         await BackgroundService.updateNotification({ taskDesc: 'Reading' }); // Only Android, iOS will ignore this call      
         await sleep(delay);
-      });
+      }
     } catch (err) {
       console.log(err);
     }
@@ -168,23 +186,10 @@ const Home = ({ navigation }) => {
 
   const toggleSwitch = async () => {
     if (isEnabled) {
-      if (subscriptionA) {
-        subscriptionA.unsubscribe();
-        setSubscriptionA(null);
-      }
-
-      if (subscriptionG) {
-        subscriptionG.unsubscribe();
-        setSubscriptionG(null);
-      }
-      try {
-        Toast.show('App is Stopped', Toast.LONG);
-        await AsyncStorage.setItem('enab', JSON.stringify(!isEnabled));
-        await BackgroundService.stop();
-        RNExitApp.exitApp();
-      } catch (error) {
-        console.log('Error', error);
-      }
+      Toast.show('App is Stopped', Toast.LONG);
+      await BackgroundService.stop();
+      await AsyncStorage.setItem('enab', JSON.stringify(!isEnabled));
+      RNExitApp.exitApp();
     } else {
       try {
         const granted = await PermissionsAndroid.requestMultiple([
