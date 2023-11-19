@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, Text, View, ScrollView, StatusBar, Switch, Linking, PermissionsAndroid, Platform } from "react-native";
+import { StyleSheet, SafeAreaView, Text, View, ScrollView, TouchableOpacity, StatusBar, Switch, Linking, PermissionsAndroid, Platform } from "react-native";
 import Toast from 'react-native-simple-toast';
 import { FLASK_API } from '@env'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { accelerometer, gyroscope, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import BackgroundService from 'react-native-background-actions';
+import PushNotification from 'react-native-push-notification';
 import RNExitApp from 'react-native-exit-app';
 import firestore from '@react-native-firebase/firestore';
 import axios from 'axios';
@@ -14,6 +15,24 @@ setUpdateIntervalForType(SensorTypes.gyroscope, 10);
 
 const Home = ({ navigation }) => {
   const [isEnabled, setIsEnabled] = useState(false);
+  const [count, setCount] = useState(null);
+  const [isFalled, setIsFalled] = useState(false);
+
+  useEffect(() => {
+    const falled = async () => {
+      try {
+        const enab = await AsyncStorage.getItem("isFalled");
+        if (JSON.parse(enab) === true) {
+          setIsFalled(true);
+        } else {
+          console.log("No saved state");
+        }
+      } catch (error) {
+        console.log("Error getting the state", error);
+      }
+    };
+    falled();
+  }, []);
 
   useEffect(() => {
     if (!isEnabled) {
@@ -65,6 +84,17 @@ const Home = ({ navigation }) => {
     };
     pairedData();
   }, []);
+
+  PushNotification.createChannel(
+    {
+      channelId: 'afterlookChannel', // Choose a unique channel ID
+      channelName: 'Your Channel Name',
+      channelDescription: 'Your Channel Description',
+      soundName: 'default',
+      importance: 4, // 4 = HIGH, 3 = DEFAULT, 2 = LOW, 1 = MIN, 0 = NONE
+    },
+    (created) => console.log(`Channel created: ${created}`),
+  );
 
   //Background task
   const sleep = (time) => new Promise((resolve) => setTimeout(() => resolve(), time));
@@ -138,9 +168,39 @@ const Home = ({ navigation }) => {
           };
           console.log('Sending...')
           await axios.post(`${FLASK_API}/predict`, requestBody)
-            .then(response => {
+            .then(async response => {
               console.log('Sent and getting...')
               console.log('Response data:', response.data);
+              if (response.data.isFalled === true) {
+                setIsFalled(true);
+                await AsyncStorage.setItem('isFalled', JSON.stringify(true));
+
+                // Show notification with action buttons
+                PushNotification.localNotification({
+                  channelId: 'afterlookChannel', // Use the same channel ID
+                  title: 'Alert!!! Fall Detected!!!',
+                  message: 'Did you fall?',
+                });
+
+                // Countdown timer in the notification
+                let countdown = 15;
+                const countdownInterval = setInterval(async () => {
+                  setCount(countdown);
+                  countdown--;
+
+                  if (countdown < 0) {
+                    yes();
+                    clearInterval(countdownInterval);
+                    setCount(null);
+                  }
+                }, 1000);
+
+                PushNotification.configure({
+                  onNotification: function () {
+                    console.log('Clicked');
+                  }
+                });
+              }
             })
             .catch(err => {
               console.error('Error:', err);
@@ -178,11 +238,21 @@ const Home = ({ navigation }) => {
   function handleOpenURL(event) {
     // Will be called when the notification is pressed
     const { url } = event;
-    if (url.endsWith('/chat/jane')) {
-      console.log(event.url)
-    }
+    console.log(url)
   }
   //
+
+  const yes = async () => {
+    setIsFalled(false);
+    await AsyncStorage.setItem('isFalled', JSON.stringify(false));
+    console.log('Calling the function...');
+  };
+
+  const no = async () => {
+    setIsFalled(false);
+    await AsyncStorage.setItem('isFalled', JSON.stringify(false));
+    console.log('nooo');
+  };
 
   const toggleSwitch = async () => {
     if (isEnabled) {
@@ -264,27 +334,43 @@ const Home = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar translucent backgroundColor="#2A2E30" />
-      <Switch
-        style={{ transform: [{ scaleX: 2 }, { scaleY: 2 }], margin: 10 }}
-        trackColor={{ false: '#767577', true: '#FFD700' }}
-        thumbColor={isEnabled ? '#2A2E30' : '#f4f3f4'}
-        ios_backgroundColor="#3e3e3e"
-        onValueChange={toggleSwitch}
-        value={isEnabled}
-      />
-      <View style={styles.devider}></View>
-      <ScrollView style={styles.sView}>
-        <Text style={styles.header}>Instructions</Text>
-        <Text style={styles.hDesc}>Read the following instructions before enabling the App</Text>
-        <View style={styles.devider}></View>
-        {instData.map((item, index) => (
-          <React.Fragment key={index}>
-            <Text style={styles.titl}>{item.title}</Text>
-            <Text style={styles.txt}>{item.describe}</Text>
-          </React.Fragment>
-        ))}
-      </ScrollView>
+      {isFalled ?
+        <>
+          <Text style={styles.timer}>Did You Fall?</Text>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.button} onPress={yes}>
+              <Text style={styles.buttonText}>Yes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={no}>
+              <Text style={styles.buttonText}>No</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+        :
+        <>
+          <StatusBar translucent backgroundColor="#2A2E30" />
+          <Switch
+            style={{ transform: [{ scaleX: 2 }, { scaleY: 2 }], margin: 10 }}
+            trackColor={{ false: '#767577', true: '#FFD700' }}
+            thumbColor={isEnabled ? '#2A2E30' : '#f4f3f4'}
+            ios_backgroundColor="#3e3e3e"
+            onValueChange={toggleSwitch}
+            value={isEnabled}
+          />
+          <View style={styles.devider}></View>
+          <ScrollView style={styles.sView}>
+            <Text style={styles.header}>Instructions</Text>
+            <Text style={styles.hDesc}>Read the following instructions before enabling the App</Text>
+            <View style={styles.devider}></View>
+            {instData.map((item, index) => (
+              <React.Fragment key={index}>
+                <Text style={styles.titl}>{item.title}</Text>
+                <Text style={styles.txt}>{item.describe}</Text>
+              </React.Fragment>
+            ))}
+          </ScrollView>
+        </>
+      }
     </SafeAreaView>
   )
 }
@@ -295,6 +381,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
+  },
+  timer: {
+    fontSize: 50,
+    color: "#000",
+    fontWeight: 'bold',
+    marginBottom: 30,
+  },
+  buttonContainer: {
+    flexDirection: 'column',
+    gap: 20
+  },
+  button: {
+    backgroundColor: '#3498db',
+    padding: 10,
+    marginVertical: 5,
+    borderRadius: 5,
+    width: 150,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   devider: {
     margin: 10,

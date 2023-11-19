@@ -67,7 +67,7 @@ const ContactList = () => {
         try {
           const { latitude, longitude } = await currentloc();
           const date = new Date();
-          const message = `Fall Detected!!!\n\nTime - ${date}\nLocation - https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+          const message = `Fall Detected!!!\n\nTime - ${date}\n\nLocation - https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
           for (let i = 0; i < selectedContacts.length; i++) {
             DirectSMS.sendDirectSMS(selectedContacts[i].phoneNumbers, message);
           }
