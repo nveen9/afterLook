@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, Text, TextInput, View, StatusBar, Modal, TouchableOpacity, Linking, PermissionsAndroid } from "react-native";
+import { StyleSheet, SafeAreaView, Text, TextInput, View, StatusBar, Modal, TouchableOpacity } from "react-native";
 import Toast from 'react-native-simple-toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import firestore from '@react-native-firebase/firestore';
 import { useIsFocused } from '@react-navigation/native';
 import BackgroundService from 'react-native-background-actions';
-import Sound from 'react-native-sound';
-import alertSound from '../sounds/warning.mp3';
 
-const CareGiver = ({ navigation }) => {
+const CareGiver = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [pairCode, setPairCode] = useState('');
@@ -41,112 +39,6 @@ const CareGiver = ({ navigation }) => {
       pairedData();
     }
   }, [isFocused]);
-
-  //Background task
-  const sleep = (time) => new Promise((resolve) => setTimeout(() => resolve(), time));
-
-  // BackgroundService.on('expiration', () => {
-  //   console.log('I am being closed :(');
-  // });
-
-  Sound.setCategory('Playback');
-
-  var whoosh = new Sound(alertSound, error => {
-    if (error) {
-      console.log('failed to load the sound', error);
-      return;
-    }
-    console.log('duration in seconds: ' + whoosh.getDuration() + 'number of channels: ' + whoosh.getNumberOfChannels());
-  });
-
-  const veryIntensiveTask = async (taskDataArguments) => {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-        {
-          title: 'After Look App Notification Permission',
-          message:
-            'After Look App needs access to your Notification ' +
-            'In order to run the app background.',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        },
-      );
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        const { delay } = taskDataArguments;
-        await new Promise(async (resolve) => {
-          for (let i = 0; BackgroundService.isRunning(); i++) {
-            const pairD = await AsyncStorage.getItem("paired");
-            const us = JSON.parse(pairD);
-            setPairedDetails(us);
-            setIsPaired(true);
-            const snapshot = await firestore()
-              .collection('Users')
-              .doc(us.userid)
-              .get();
-            if (snapshot.exists) {
-              if (snapshot.data().notify === true) {
-                whoosh.play();
-                whoosh.setVolume(1);
-                await BackgroundService.updateNotification({ taskDesc: 'Alert!' }); // Only Android, iOS will ignore this call      
-                await sleep(delay);
-              } else {
-                whoosh.stop();
-                await BackgroundService.updateNotification({ taskDesc: 'No Notifications' }); // Only Android, iOS will ignore this call  
-                await sleep(delay);
-              }
-            } else {
-              await BackgroundService.updateNotification({ taskDesc: 'No Notifications' }); // Only Android, iOS will ignore this call      
-              await sleep(delay);
-            }
-          }
-        });
-      } else {
-        console.log('Permission denied');
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  const options = {
-    taskName: 'After Look',
-    taskTitle: 'Notification',
-    taskDesc: 'No Notifications',
-    taskIcon: {
-      name: 'ic_launcher',
-      type: 'mipmap',
-    },
-    color: '#fff',
-    linkingURI: 'backScheme://chat/jane', // See Deep Linking for more info
-    parameters: {
-      delay: 1000,
-    },
-  };
-  // 
-
-  const getl = async () => {
-    const doc = await firestore().collection('Users').doc(pairedDetails.userid).get();
-    if (doc.data().falled === true) {
-      whoosh.stop();
-      const geopoint = doc.data().geoL;
-
-      //assign lat and long from geo points
-      const latitude = geopoint.latitude;
-      const longitude = geopoint.longitude;
-      const urlPha = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
-      Linking.openURL(urlPha).then(supported => {
-        if (supported) {
-          Linking.openURL(urlPha);
-        } else {
-          console.log("warning");
-        }
-      });
-    } else {
-      Toast.show('No Emergency Situation Found', Toast.SHORT);
-    }
-  }
 
   const paringCode = async () => {
     await firestore()
@@ -189,52 +81,28 @@ const CareGiver = ({ navigation }) => {
     }
   }
 
-  const start = async () => {
-    await BackgroundService.start(veryIntensiveTask, options);
-  }
-
-  const stop = async () => {
-    await BackgroundService.stop();
-    whoosh.stop();
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.ncontainer}>
         <StatusBar translucent backgroundColor="#2A2E30" />
-        <View style={styles.pairContainer}>
-          <Text style={styles.pTxt}>PAIRING</Text>
-          {isPaired ?
-            <>
-              <Text style={styles.eTxt}>Paired with {pairedDetails.name}</Text>
-              <View style={styles.devider}></View>
-              <TouchableOpacity style={styles.button} title='unparing' onPress={unpair}>
-                <Text style={styles.signUpText}>Unpair</Text>
-              </TouchableOpacity>
-              <View style={styles.devider}></View>
-              <TouchableOpacity style={styles.button} title='getL' onPress={getl}>
-                <Text style={styles.signUpText}>Get Location</Text>
-              </TouchableOpacity>
-            </>
-            :
-            <>
-              <Text style={styles.eTxt}>No User Paired</Text>
-              <View style={styles.devider}></View>
-              <TouchableOpacity style={styles.button} title='Paring' onPress={() => setModalVisible(true)}>
-                <Text style={styles.signUpText}>Paring with Faller</Text>
-              </TouchableOpacity>
-            </>
-          }
-          <View style={styles.devider}></View>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity title='start' onPress={start}>
-              <Text style={styles.signUpText}>Start</Text>
+        <Text style={styles.pTxt}>PAIRING</Text>
+        {isPaired ?
+          <>
+            <Text style={styles.eTxt}>Paired with {pairedDetails.name}</Text>
+            <View style={styles.devider}></View>
+            <TouchableOpacity style={styles.button} title='unparing' onPress={unpair}>
+              <Text style={styles.signUpText}>Unpair</Text>
             </TouchableOpacity>
-            <TouchableOpacity title='stop' onPress={stop}>
-              <Text style={styles.signUpText}>Stop</Text>
+          </>
+          :
+          <>
+            <Text style={styles.eTxt}>No User Paired</Text>
+            <View style={styles.devider}></View>
+            <TouchableOpacity style={styles.button} title='Paring' onPress={() => setModalVisible(true)}>
+              <Text style={styles.signUpText}>Paring with Faller</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </>
+        }
         <Modal
           animationType="slide"
           transparent={true}

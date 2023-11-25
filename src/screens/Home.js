@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, Text, View, ScrollView, TouchableOpacity, StatusBar, Switch, Linking, PermissionsAndroid, Platform } from "react-native";
+import { StyleSheet, SafeAreaView, Text, View, ScrollView, TouchableOpacity, StatusBar, Switch, Linking, PermissionsAndroid, Platform, NativeModules } from "react-native";
 import Toast from 'react-native-simple-toast';
 import { FLASK_API } from '@env'
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Geolocation from "@react-native-community/geolocation";
 import { accelerometer, gyroscope, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import BackgroundService from 'react-native-background-actions';
 import PushNotification from 'react-native-push-notification';
 import RNExitApp from 'react-native-exit-app';
 import firestore from '@react-native-firebase/firestore';
 import axios from 'axios';
+import Sound from 'react-native-sound';
+import alertSound from '../sounds/warning.mp3';
 
 setUpdateIntervalForType(SensorTypes.accelerometer, 10);
 setUpdateIntervalForType(SensorTypes.gyroscope, 10);
@@ -17,6 +20,8 @@ const Home = ({ navigation }) => {
   const [isEnabled, setIsEnabled] = useState(false);
   const [count, setCount] = useState(null);
   const [isFalled, setIsFalled] = useState(false);
+
+  const DirectSMS = NativeModules.DirectSMS;
 
   useEffect(() => {
     const falled = async () => {
@@ -62,11 +67,13 @@ const Home = ({ navigation }) => {
           if (us !== null) {
             const doc = await firestore().collection('Users').doc(us.userid).get();
             if (doc.data().falled === true) {
+              whoosh.stop();
               await firestore()
                 .collection('Users')
                 .doc(us.userid)
                 .update({
                   notify: false,
+                  falled: false
                 })
                 .then(() => {
                   navigation.navigate('Map');
@@ -102,6 +109,16 @@ const Home = ({ navigation }) => {
   // BackgroundService.on('expiration', () => {
   //   console.log('I am being closed :(');
   // });
+
+  Sound.setCategory('Playback');
+
+  var whoosh = new Sound(alertSound, error => {
+    if (error) {
+      console.log('failed to load the sound', error);
+      return;
+    }
+    console.log('duration in seconds: ' + whoosh.getDuration() + 'number of channels: ' + whoosh.getNumberOfChannels());
+  });
 
   // You can do anything in your task such as network requests, timers and so on,
   // as long as it doesn't touch UI. Once your task completes (i.e. the promise is resolved),
@@ -167,14 +184,15 @@ const Home = ({ navigation }) => {
             gyData: gyroData,
           };
           console.log('Sending...')
+          await BackgroundService.updateNotification({ taskDesc: 'Sending...' });
           await axios.post(`${FLASK_API}/predict`, requestBody)
             .then(async response => {
               console.log('Sent and getting...')
               console.log('Response data:', response.data);
-              if (response.data.isFalled === true) {
+              if (response.data.isFalled === false) {
                 setIsFalled(true);
                 await AsyncStorage.setItem('isFalled', JSON.stringify(true));
-
+                await BackgroundService.updateNotification({ taskDesc: 'Alert!!!' });
                 // Show notification with action buttons
                 PushNotification.localNotification({
                   channelId: 'afterlookChannel', // Use the same channel ID
@@ -183,15 +201,26 @@ const Home = ({ navigation }) => {
                 });
 
                 // Countdown timer in the notification
-                let countdown = 15;
+                let countdown = 10;
                 const countdownInterval = setInterval(async () => {
+                  //Alert
+                  whoosh.play();
+                  whoosh.setVolume(1);
+
                   setCount(countdown);
                   countdown--;
 
                   if (countdown < 0) {
-                    yes();
                     clearInterval(countdownInterval);
                     setCount(null);
+
+                    // call the function
+                    const enab = await AsyncStorage.getItem("isFalled");
+                    if (JSON.parse(enab) === true) {
+                      yes();
+                    } else {
+                      console.log('Not Sent!!!');
+                    }
                   }
                 }, 1000);
 
@@ -208,6 +237,23 @@ const Home = ({ navigation }) => {
 
         } else {
           console.log('Threshold is lower');
+        }
+
+        const pairD = await AsyncStorage.getItem("paired");
+        if (pairD !== null) {
+          const us = JSON.parse(pairD);
+          const snapshot = await firestore()
+            .collection('Users')
+            .doc(us.userid)
+            .get();
+          if (snapshot.exists) {
+            if (snapshot.data().notify === true) {
+              whoosh.play();
+              whoosh.setVolume(1);
+            } else {
+              whoosh.stop();
+            }
+          }
         }
 
         await BackgroundService.updateNotification({ taskDesc: 'Reading' }); // Only Android, iOS will ignore this call      
@@ -244,14 +290,99 @@ const Home = ({ navigation }) => {
 
   const yes = async () => {
     setIsFalled(false);
-    await AsyncStorage.setItem('isFalled', JSON.stringify(false));
-    console.log('Calling the function...');
+
+    // Get the current location
+    Geolocation.getCurrentPosition(
+      async (position) => {
+        console.log('posi',position)
+        const { latitude, longitude } = position.coords;
+        console.log('Latitude:', latitude);
+        console.log('Longitude:', longitude);
+
+        // call the functions
+        const isSMSEnabled = await AsyncStorage.getItem("SMSenab");
+        console.log('isSMSEnabled', isSMSEnabled);
+
+        if (isSMSEnabled === 'true') {
+          await sendingSMSAlert(latitude, longitude);
+          Toast.show('Alert Sent', Toast.LONG);
+          console.log('SMS Sent');
+        } else {
+          console.log('No SMS Alert');
+        }
+
+        const uID = await AsyncStorage.getItem("userID");
+        if (uID !== null) {
+          sendingAPPAlert(uID, latitude, longitude);
+          console.log('APP alert Sent');
+        } else {
+          Toast.show(isSMSEnabled === 'false' ? 'Alert User not found' : 'No APP Alert', Toast.LONG);
+        }
+
+        await AsyncStorage.setItem('isFalled', JSON.stringify(false));
+      },
+      (error) => {
+        // Handle error
+        console.error('Error getting location:', error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000
+      }
+    );
   };
 
   const no = async () => {
     setIsFalled(false);
+    whoosh.stop();
+    Toast.show('Looks like your fine', Toast.LONG);
     await AsyncStorage.setItem('isFalled', JSON.stringify(false));
     console.log('nooo');
+  };
+
+  const sendingAPPAlert = async (uID, latitude, longitude) => {
+    //const id = setInterval(sendLocation(uID, latitude, longitude), 5000);
+    sendLocation(uID, latitude, longitude);
+    await firestore()
+      .collection('Users')
+      .doc(uID)
+      .update({
+        notify: true
+      })
+      .then(() => {
+        console.log('Notify updated!');
+      });
+  }
+
+  const sendLocation = async (uID, latitude, longitude) => {
+    await firestore()
+      .collection('Users')
+      .doc(uID)
+      .update({
+        falled: true,
+        geoL: new firestore.GeoPoint(latitude, longitude),
+      })
+      .then(() => {
+        console.log('Location updated!');
+      });
+  }
+
+  const sendingSMSAlert = async (latitude, longitude) => {
+    const date = new Date();
+    const message = `Fall Detected!!!\n\nTime - ${date}\n\nLocation - https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+
+    const savedContactsJson = await AsyncStorage.getItem("selectedContacts");
+    if (savedContactsJson !== null) {
+      const savedContacts = JSON.parse(savedContactsJson);
+      if (savedContacts && savedContacts.length > 0) {
+        for (let i = 0; i < savedContacts.length; i++) {
+          DirectSMS.sendDirectSMS(savedContacts[i].phoneNumbers, message);
+        }
+      }
+    } else {
+      console.log('No Contacts Imported');
+      Toast.show('No Contacts Imported', Toast.SHORT);
+    }
   };
 
   const toggleSwitch = async () => {
@@ -274,25 +405,12 @@ const Home = ({ navigation }) => {
           granted['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED
         ) {
           try {
-            const savedContactsJson = await AsyncStorage.getItem("selectedContacts");
-            if (savedContactsJson !== null) {
-              const savedContacts = JSON.parse(savedContactsJson);
-              if (savedContacts && savedContacts.length > 0) {
-                await AsyncStorage.setItem('enab', JSON.stringify(!isEnabled));
-                await BackgroundService.start(veryIntensiveTask, options);
-                Toast.show('App is Started & Running in Background', Toast.LONG);
-              } else {
-                console.log('No Contacts Imported');
-                Toast.show('No Contacts Imported', Toast.SHORT);
-                setIsEnabled(true);
-              }
-            } else {
-              console.log('No Contacts Imported');
-              Toast.show('No Contacts Imported', Toast.SHORT);
-              setIsEnabled(true);
-            }
+            await AsyncStorage.setItem('enab', JSON.stringify(!isEnabled));
+            await BackgroundService.start(veryIntensiveTask, options);
+            Toast.show('App is Started & Running in Background', Toast.LONG);
           } catch (error) {
             console.log("Error getting the state", error);
+            setIsEnabled(true);
           }
         } else {
           console.log('Permission denied');

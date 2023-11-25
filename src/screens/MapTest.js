@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback  } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { View, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { debounce } from 'lodash';
@@ -62,7 +62,7 @@ const MapScreen = () => {
         } catch (error) {
             console.log("Error retrieving ", error);
         }
-    },[]);
+    }, []);
 
     useEffect(() => {
         if (isFocused) {
@@ -72,14 +72,12 @@ const MapScreen = () => {
 
     const getCurrentLocation = async () => {
         const doc = await firestore().collection('Users').doc(pairedDetails.userid).get();
-        if (doc.data().falled === true) {
-            const geopoint = doc.data().geoL;
-            setCurrentLocation({
-                latitude: geopoint.latitude,
-                longitude: geopoint.longitude,
-            })
-            console.log(geopoint.latitude, geopoint.longitude);
-        }
+        const geopoint = doc.data().geoL;
+        setCurrentLocation({
+            latitude: geopoint.latitude,
+            longitude: geopoint.longitude,
+        })
+        console.log(geopoint.latitude, geopoint.longitude);
     };
 
     const onRegionChange = debounce(region => {

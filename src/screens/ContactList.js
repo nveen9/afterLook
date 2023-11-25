@@ -1,20 +1,36 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Button, TouchableOpacity, PermissionsAndroid, NativeModules, Animated } from "react-native";
+import { View, Text, StyleSheet, Switch, TouchableOpacity, Animated } from "react-native";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
-import Geolocation from "@react-native-community/geolocation";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { Swipeable } from 'react-native-gesture-handler';
 
 const ContactList = () => {
-
+  const [isEnabled, setIsEnabled] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [noContacts, setNoContacts] = useState(false);
   const isFocused = useIsFocused();
 
-  const DirectSMS = NativeModules.DirectSMS;
+  useEffect(() => {
+    if (!isEnabled) {
+      const getEnab = async () => {
+        try {
+          const enab = await AsyncStorage.getItem("SMSenab");
+          if (enab !== null) {
+            const enabb = JSON.parse(enab);
+            setIsEnabled(enabb);
+          } else {
+            console.log("No saved state");
+          }
+        } catch (error) {
+          console.log("Error getting the state", error);
+        }
+      };
+      getEnab();
+    }
+  }, [isEnabled]);
 
   useEffect(() => {
     if (isFocused) {
@@ -49,55 +65,20 @@ const ContactList = () => {
     onSaveUpdatedContacts(selectedContacts);
   }, [selectedContacts]);
 
-  const sendSMsS = async () => {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.SEND_SMS,
-        {
-          title: 'After Look App Message Permission',
-          message:
-            'After Look App needs access to your Message Application ' +
-            'In order to send the alert.',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        },
-      );
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        try {
-          const { latitude, longitude } = await currentloc();
-          const date = new Date();
-          const message = `Fall Detected!!!\n\nTime - ${date}\n\nLocation - https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
-          for (let i = 0; i < selectedContacts.length; i++) {
-            DirectSMS.sendDirectSMS(selectedContacts[i].phoneNumbers, message);
-          }
-          console.log('Message Sent');
-        } catch (err) {
-          console.log('Error Sending Message');
-        }
-      } else {
-        console.log('Permission denied');
+  const toggleSwitch = async () => {
+    if (isEnabled) {
+      await AsyncStorage.setItem('SMSenab', JSON.stringify(!isEnabled));
+      console.log('Disable');
+    } else {
+      try {
+        await AsyncStorage.setItem('SMSenab', JSON.stringify(!isEnabled));
+        console.log('Enable');
+      } catch (error) {
+        console.log('Error', error);
       }
-    } catch (err) {
-      console.log(err);
     }
+    setIsEnabled(previousState => !previousState);
   }
-
-  const currentloc = async () => {
-    try {
-      return new Promise((resolve, reject) => {
-        Geolocation.getCurrentPosition((position) => {
-            const { latitude, longitude } = position.coords;
-            resolve({ latitude, longitude });
-          },
-          (error) => reject(error),
-          { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
-        );
-      });
-    } catch (err) {
-      console.log(err);
-    }
-  };
 
   const renderItem = ({ item, drag, isActive }) => {
     const renderRightActions = (progress, dragX) => {
@@ -159,11 +140,21 @@ const ContactList = () => {
         </View>
         :
         <View style={styles.container}>
+          <View style={styles.switchContainer}>
+            <Text style={styles.enableTxt}>Enable to Send SMS Notifications</Text>
+            <Switch
+              style={{ transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }], margin: 10 }}
+              trackColor={{ false: '#767577', true: '#FFD700' }}
+              thumbColor={isEnabled ? '#2A2E30' : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+              onValueChange={toggleSwitch}
+              value={isEnabled}
+            />
+          </View>
           <View style={styles.cont}>
             <Text style={styles.ordertxt}>Reorder the Contacts as Priority</Text>
             <View style={styles.nocont}>
               <Text style={styles.dordertxt}>Hold to drag</Text>
-              {/* <Button title="Send" onPress={sendSMsS} /> */}
             </View>
           </View>
           <DraggableFlatList
@@ -200,6 +191,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#fff",
   },
+  switchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 30,
+  },
   txt: {
     color: "#000",
   },
@@ -220,6 +216,10 @@ const styles = StyleSheet.create({
   },
   notxt: {
     color: "#B68D40",
+    fontWeight: "bold",
+  },
+  enableTxt: {
+    color: "#000",
     fontWeight: "bold",
   },
   ordertxt: {

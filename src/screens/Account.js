@@ -6,6 +6,7 @@ import firestore from '@react-native-firebase/firestore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useIsFocused } from '@react-navigation/native';
 import Geolocation from "@react-native-community/geolocation";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Account = ({ navigation }) => {
     const [user, setUser] = useState(null);
@@ -29,6 +30,7 @@ const Account = ({ navigation }) => {
                         if (snapshot.exists) {
                             setName(snapshot.data().name);
                             setRandomNum(snapshot.data().randomNum);
+                            await AsyncStorage.setItem('userID', user.uid);
                         }
                     }
                     getFromFirestore();
@@ -108,8 +110,9 @@ const Account = ({ navigation }) => {
             try {
                 await GoogleSignin.revokeAccess();
                 await GoogleSignin.signOut();
-                auth().signOut().then(() => {
+                auth().signOut().then(async () => {
                     setName('');
+                    await AsyncStorage.setItem('userID', JSON.stringify(null));
                     console.log('Signout Success');
                 }).catch((error) => {
                     console.log(error);
@@ -118,8 +121,9 @@ const Account = ({ navigation }) => {
                 console.log(err);
             }
         } else {
-            auth().signOut().then(() => {
+            auth().signOut().then(async () => {
                 setName('');
+                await AsyncStorage.setItem('userID', JSON.stringify(null));
                 console.log('Signout Success');
             }).catch((error) => {
                 console.log(error);
@@ -153,16 +157,6 @@ const Account = ({ navigation }) => {
                             <Text style={styles.signUpText}>Login</Text>
                         </TouchableOpacity>
                     </>}
-                <View style={styles.cDivider}></View>
-                <View style={styles.devider}></View>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <TouchableOpacity title='send' onPress={startSendingLocation}>
-                        <Text style={styles.signUpText}>Location Send</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity title='send' onPress={stopSendingLocation}>
-                        <Text style={styles.signUpText}>Location Stop</Text>
-                    </TouchableOpacity>
-                </View>
             </View>
         </SafeAreaView>
     )
