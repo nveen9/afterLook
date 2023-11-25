@@ -8,6 +8,7 @@ import Account from './Account';
 import Caregiver from './Caregiver';
 import Test from './Testt';
 import MapTest from './MapTest';
+import Features from './Features';
 
 const TabNav = ({navigation}) => {
     const Tab = createBottomTabNavigator();
@@ -57,7 +58,18 @@ const TabNav = ({navigation}) => {
                     <Ionic name={focused ? "book" : "book-outline"} color={color} size={size} />
                 ),
             }} />
-            <Tab.Screen name="AccountDetails" component={Account} options={{
+             <Tab.Screen name="Features" component={Features} options={{
+                title: 'Features',
+                headerTintColor: '#B68D40',
+                headerStyle: {
+                    backgroundColor: '#2A2E30',
+                },
+                tabBarLabel: 'Features',
+                tabBarIcon: ({ focused, color, size }) => (
+                    <Ionic name={focused ? "flash" : "flash-outline"} color={color} size={size} />
+                ),
+            }}/>
+             <Tab.Screen name="AccountDetails" component={Account} options={{
                 title: 'Account Details',
                 headerTintColor: '#B68D40',
                 headerStyle: {

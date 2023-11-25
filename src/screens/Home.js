@@ -189,7 +189,8 @@ const Home = ({ navigation }) => {
             .then(async response => {
               console.log('Sent and getting...')
               console.log('Response data:', response.data);
-              if (response.data.isFalled === false) {
+              const livLoc = await AsyncStorage.getItem("liveLoc");
+              if (response.data.isFalled === true && (livLoc === null || (livLoc !== null && JSON.parse(livLoc) === false))) {
                 setIsFalled(true);
                 await AsyncStorage.setItem('isFalled', JSON.stringify(true));
                 await BackgroundService.updateNotification({ taskDesc: 'Alert!!!' });
@@ -230,6 +231,53 @@ const Home = ({ navigation }) => {
                   }
                 });
               }
+              if ((response.data.isFalled === true || response.data.isFalled === false) && (livLoc !== null && JSON.parse(livLoc) === true)) {
+                console.log('live sharing...');
+                const uID = await AsyncStorage.getItem("userID");
+                if (uID !== null) {
+                  await firestore()
+                    .collection('Users')
+                    .doc(uID)
+                    .update({
+                      notify: true
+                    })
+                    .then(() => {
+                      console.log('Location updated!');
+                    });
+                  // Countdown timer in the notification
+                  let countdown = Infinity;
+                  const countdownInterval = setInterval(async () => {
+                    Geolocation.watchPosition(
+                      async (position) => {
+                        const { latitude, longitude } = position.coords;
+                        await firestore()
+                          .collection('Users')
+                          .doc(uID)
+                          .update({
+                            falled: true,
+                            geoL: new firestore.GeoPoint(latitude, longitude),
+                          })
+                          .then(() => {
+                            console.log(latitude, longitude)
+                            console.log('Location updated!');
+                          });
+                      },
+                      (error) => {
+                        console.error(error.message);
+                      },
+                      {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        distanceFilter: 2, // Update location every 10 meters
+                      }
+                    );
+                    countdown--;
+                  }, 5000);
+
+                  // Cleanup function to clear the interval on component unmount
+                  return () => clearInterval(countdownInterval);
+                }
+              }
             })
             .catch(err => {
               console.error('Error:', err);
@@ -240,7 +288,8 @@ const Home = ({ navigation }) => {
         }
 
         const pairD = await AsyncStorage.getItem("paired");
-        if (pairD !== null) {
+        const livLoc = await AsyncStorage.getItem("liveLoc");
+        if (pairD !== null && (livLoc === null || (livLoc !== null && JSON.parse(livLoc) === false))) {
           const us = JSON.parse(pairD);
           const snapshot = await firestore()
             .collection('Users')
@@ -294,7 +343,7 @@ const Home = ({ navigation }) => {
     // Get the current location
     Geolocation.getCurrentPosition(
       async (position) => {
-        console.log('posi',position)
+        console.log('posi', position)
         const { latitude, longitude } = position.coords;
         console.log('Latitude:', latitude);
         console.log('Longitude:', longitude);
@@ -333,38 +382,48 @@ const Home = ({ navigation }) => {
   };
 
   const no = async () => {
-    setIsFalled(false);
     whoosh.stop();
+    setIsFalled(false);
     Toast.show('Looks like your fine', Toast.LONG);
     await AsyncStorage.setItem('isFalled', JSON.stringify(false));
     console.log('nooo');
   };
 
   const sendingAPPAlert = async (uID, latitude, longitude) => {
-    //const id = setInterval(sendLocation(uID, latitude, longitude), 5000);
-    sendLocation(uID, latitude, longitude);
-    await firestore()
-      .collection('Users')
-      .doc(uID)
-      .update({
-        notify: true
-      })
-      .then(() => {
-        console.log('Notify updated!');
-      });
-  }
-
-  const sendLocation = async (uID, latitude, longitude) => {
     await firestore()
       .collection('Users')
       .doc(uID)
       .update({
         falled: true,
+        notify: true,
         geoL: new firestore.GeoPoint(latitude, longitude),
       })
       .then(() => {
         console.log('Location updated!');
       });
+  }
+
+  const sendLocation = async (uID) => {
+    console.log(uID);
+    Geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        await firestore()
+          .collection('Users')
+          .doc(uID)
+          .update({
+            falled: true,
+            geoL: new firestore.GeoPoint(latitude, longitude),
+          })
+          .then(() => {
+            console.log('Location updated!');
+          });
+      },
+      (error) => {
+        console.error(error.message);
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
   }
 
   const sendingSMSAlert = async (latitude, longitude) => {

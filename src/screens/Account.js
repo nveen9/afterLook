@@ -7,6 +7,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useIsFocused } from '@react-navigation/native';
 import Geolocation from "@react-native-community/geolocation";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-simple-toast';
 
 const Account = ({ navigation }) => {
     const [user, setUser] = useState(null);
@@ -112,7 +113,14 @@ const Account = ({ navigation }) => {
                 await GoogleSignin.signOut();
                 auth().signOut().then(async () => {
                     setName('');
-                    await AsyncStorage.setItem('userID', JSON.stringify(null));
+
+                    const removeItems = ['userID', 'liveLoc'];
+                    await Promise.all(
+                        removeItems.map(async (key) => {
+                            await AsyncStorage.removeItem(key);
+                        })
+                    );
+                    Toast.show('Logged out', Toast.SHORT);
                     console.log('Signout Success');
                 }).catch((error) => {
                     console.log(error);
@@ -123,8 +131,16 @@ const Account = ({ navigation }) => {
         } else {
             auth().signOut().then(async () => {
                 setName('');
-                await AsyncStorage.setItem('userID', JSON.stringify(null));
+
+                const removeItems = ['userID', 'liveLoc'];
+                await Promise.all(
+                    removeItems.map(async (key) => {
+                        await AsyncStorage.removeItem(key);
+                    })
+                );
+                Toast.show('Logged out', Toast.SHORT);
                 console.log('Signout Success');
+
             }).catch((error) => {
                 console.log(error);
             });

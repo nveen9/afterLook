@@ -73,7 +73,7 @@ const CareGiver = () => {
 
   const unpair = async () => {
     try {
-      await AsyncStorage.setItem('paired', JSON.stringify(null));
+      await AsyncStorage.removeItem('paired');
       setIsPaired(false);
       Toast.show('unpaired Success', Toast.SHORT);
     } catch (error) {

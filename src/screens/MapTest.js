@@ -52,6 +52,8 @@ const MapScreen = () => {
                             .then(() => {
                                 console.log('Notify Updated');
                             });
+                    }else{
+                        setPairedDetails(null);
                     }
                 } else {
                     console.log("No pairing");
