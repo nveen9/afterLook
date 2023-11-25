@@ -268,7 +268,7 @@ const Home = ({ navigation }) => {
                       {
                         enableHighAccuracy: true,
                         timeout: 15000,
-                        distanceFilter: 2, // Update location every 10 meters
+                        distanceFilter: 2, // Update location every 2 meters
                       }
                     );
                     countdown--;
