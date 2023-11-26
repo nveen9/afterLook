@@ -190,7 +190,7 @@ const Home = ({ navigation }) => {
               console.log('Sent and getting...')
               console.log('Response data:', response.data);
               const livLoc = await AsyncStorage.getItem("liveLoc");
-              if (response.data.isFalled === true && (livLoc === null || (livLoc !== null && JSON.parse(livLoc) === false))) {
+              if (response.data.isFalled === false && (livLoc === null || (livLoc !== null && JSON.parse(livLoc) === false))) {
                 setIsFalled(true);
                 await AsyncStorage.setItem('isFalled', JSON.stringify(true));
                 await BackgroundService.updateNotification({ taskDesc: 'Alert!!!' });
@@ -463,13 +463,27 @@ const Home = ({ navigation }) => {
           granted['android.permission.POST_NOTIFICATIONS'] === PermissionsAndroid.RESULTS.GRANTED &&
           granted['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED
         ) {
-          try {
-            await AsyncStorage.setItem('enab', JSON.stringify(!isEnabled));
-            await BackgroundService.start(veryIntensiveTask, options);
-            Toast.show('App is Started & Running in Background', Toast.LONG);
-          } catch (error) {
-            console.log("Error getting the state", error);
+          const backgroundLocationGranted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION
+          );
+          if (backgroundLocationGranted === PermissionsAndroid.RESULTS.GRANTED) {
+            try {
+              await AsyncStorage.setItem('enab', JSON.stringify(!isEnabled));
+              await BackgroundService.start(veryIntensiveTask, options);
+              Toast.show('App is Started & Running in Background', Toast.LONG);
+            } catch (error) {
+              console.log("Error getting the state", error);
+              setIsEnabled(true);
+            }
+          }else{
+            console.log('Permission denied');
+            Toast.show('Permission Denied', Toast.SHORT);
             setIsEnabled(true);
+            if (Platform.OS === 'ios') {
+              Linking.openURL('app-settings:');
+            } else {
+              Linking.openSettings();
+            }
           }
         } else {
           console.log('Permission denied');
@@ -497,7 +511,7 @@ const Home = ({ navigation }) => {
     },
     {
       title: '\nPermission',
-      describe: '\nGranting access to permissions does not involve providing data to third parties.\n\nTo ensure proper functionality of the app, it is necessary to grant access to Location, Contacts, SMS, and Notification permissions.\n\nIf any of the above-mentioned permissions are denied, the fall identification feature will not be enabled and direct you to the App settings.\n\nIf you directed to the App settings, you must manually enable the permissions, as the app will not prompt you again for permission.',
+      describe: '\nGranting access to permissions does not involve providing data to third parties.\n\nTo ensure proper functionality of the app, it is necessary to grant access to Location, Contacts, SMS, and Notification permissions. \n\nLocation permissions must be set to Precise Location and grant "Allow all the time". In App Settings, User can click on the Location under "Allowed" section and Manually grant access to "Allow all the time" under "Location access for this app" section. Make sure "Use precise location" is enabled.\n\nIf any of the above-mentioned permissions are denied, the fall identification feature will not be enabled and direct you to the App settings.\n\nIf you directed to the App settings, you must manually enable the permissions, as the app will not prompt you again for permission.',
     },
     {
       title: '\nContacts',
