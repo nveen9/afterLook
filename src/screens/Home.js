@@ -190,7 +190,7 @@ const Home = ({ navigation }) => {
               console.log('Sent and getting...')
               console.log('Response data:', response.data);
               const livLoc = await AsyncStorage.getItem("liveLoc");
-              if (response.data.isFalled === false && (livLoc === null || (livLoc !== null && JSON.parse(livLoc) === false))) {
+              if (response.data.isFalled === true && (livLoc === null || (livLoc !== null && JSON.parse(livLoc) === false))) {
                 setIsFalled(true);
                 await AsyncStorage.setItem('isFalled', JSON.stringify(true));
                 await BackgroundService.updateNotification({ taskDesc: 'Alert!!!' });
@@ -202,7 +202,7 @@ const Home = ({ navigation }) => {
                 });
 
                 // Countdown timer in the notification
-                let countdown = 10;
+                let countdown = 15;
                 const countdownInterval = setInterval(async () => {
                   //Alert
                   whoosh.play();
