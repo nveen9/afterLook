@@ -455,12 +455,10 @@ const Home = ({ navigation }) => {
         const granted = await PermissionsAndroid.requestMultiple([
           PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
           PermissionsAndroid.PERMISSIONS.SEND_SMS,
-          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         ]);
         if (granted['android.permission.READ_CONTACTS'] === PermissionsAndroid.RESULTS.GRANTED &&
           granted['android.permission.SEND_SMS'] === PermissionsAndroid.RESULTS.GRANTED &&
-          granted['android.permission.POST_NOTIFICATIONS'] === PermissionsAndroid.RESULTS.GRANTED &&
           granted['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED
         ) {
           const backgroundLocationGranted = await PermissionsAndroid.request(
@@ -475,7 +473,7 @@ const Home = ({ navigation }) => {
               console.log("Error getting the state", error);
               setIsEnabled(true);
             }
-          }else{
+          } else {
             console.log('Permission denied');
             Toast.show('Permission Denied', Toast.SHORT);
             setIsEnabled(true);
