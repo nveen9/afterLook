@@ -9,28 +9,34 @@ const Features = () => {
     const [modalData, setModalData] = useState({
         title: '',
         modalText: ''
-      });
-    const [isEnabled, setIsEnabled] = useState(false);
+    });
+    const [llEnabled, setLLEnabled] = useState(false);
+    const [tnEnabled, setTNEnabled] = useState(false);
     const isFocused = useIsFocused();
 
     useEffect(() => {
         if (isFocused) {
             const getEnab = async () => {
                 try {
-                    const enab = await AsyncStorage.getItem("liveLoc");
-                    if (enab !== null) {
+                    const liveLoc = await AsyncStorage.getItem("liveLoc");
+                    if (liveLoc !== null) {
                         const uID = await AsyncStorage.getItem("userID");
                         if (uID !== null) {
-                            const enabb = JSON.parse(enab);
-                            setIsEnabled(enabb);
-                            setModalData({
-                                title: 'Live Location Sharing Mode',
-                                modalText: 'In case of an Emergency, User can enable this Mode. \n\nFaller won\'t get notification alert with Siren Sound. \n\nLocation will be shared to Caregiver when Mobile Phone is Shaked, Put into the Pocket, Running, Speed Walking and Activities related to other than Relaxing.'
-                              });
+                            const liveL = JSON.parse(liveLoc);
+                            setLLEnabled(liveL);
                         }
                     } else {
                         console.log("No saved state");
-                        setIsEnabled(false);
+                        setLLEnabled(false);
+                    }
+
+                    const testNot = await AsyncStorage.getItem("testNot");
+                    if (testNot !== null) {
+                        const testN = JSON.parse(testNot);
+                        setTNEnabled(testN);
+                    } else {
+                        console.log("No saved state");
+                        setTNEnabled(false);
                     }
                 } catch (error) {
                     console.log("Error getting the state", error);
@@ -40,29 +46,57 @@ const Features = () => {
         }
     }, [isFocused]);
 
-    const toggleSwitch = async () => {
-        if (isEnabled) {
-            await AsyncStorage.setItem('liveLoc', JSON.stringify(!isEnabled));
+    const toggleSwitchLLS = async () => {
+        if (llEnabled) {
+            await AsyncStorage.setItem('liveLoc', JSON.stringify(!llEnabled));
+            Toast.show('Live Location Sharing Disabled', Toast.LONG);
             console.log('Disable');
         } else {
             try {
                 const uID = await AsyncStorage.getItem("userID");
                 if (uID !== null) {
-                    await AsyncStorage.setItem('liveLoc', JSON.stringify(!isEnabled));
+                    setModalData({
+                        title: 'Live Location Sharing Mode',
+                        modalText: 'In case of an Emergency, User can enable this Mode. \n\nFaller won\'t get notification alert with Siren Sound. \n\nLocation will be shared to Caregiver when Mobile Phone is Shaked, Put into the Pocket, Running, Speed Walking and Activities related to other than Relaxing.'
+                    });
+                    await AsyncStorage.setItem('liveLoc', JSON.stringify(!llEnabled));
                     Toast.show('Live Location Sharing Enabled', Toast.LONG);
                     console.log('Enable');
                     setModalVisible(!modalVisible);
                 } else {
                     Toast.show('Need to Register for Live Location Sharing', Toast.LONG);
                     console.log('Need to Register for Live Sharing');
-                    setIsEnabled(true);
+                    setLLEnabled(true);
                 }
             } catch (error) {
                 console.log('Error', error);
-                setIsEnabled(true);
+                setLLEnabled(true);
             }
         }
-        setIsEnabled(previousState => !previousState);
+        setLLEnabled(previousState => !previousState);
+    }
+
+    const toggleSwitchTN = async () => {
+        if (tnEnabled) {
+            await AsyncStorage.removeItem('testNot');
+            Toast.show('Test Notification Disabled', Toast.LONG);
+            console.log('Disable');
+        } else {
+            try {
+                setModalData({
+                    title: 'Test Notification Mode',
+                    modalText: 'You can test the Notification. \n\nJust Shake Your Device after Enabling the App.'
+                });
+                await AsyncStorage.setItem('testNot', JSON.stringify(!tnEnabled));
+                Toast.show('Test Notification Enabled', Toast.LONG);
+                console.log('Enable');
+                setModalVisible(!modalVisible);
+            } catch (error) {
+                console.log('Error', error);
+                setTNEnabled(true);
+            }
+        }
+        setTNEnabled(previousState => !previousState);
     }
 
     return (
@@ -78,10 +112,21 @@ const Features = () => {
                 <Switch
                     style={{ transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }], margin: 10 }}
                     trackColor={{ false: '#767577', true: '#FFD700' }}
-                    thumbColor={isEnabled ? '#2A2E30' : '#f4f3f4'}
+                    thumbColor={llEnabled ? '#2A2E30' : '#f4f3f4'}
                     ios_backgroundColor="#3e3e3e"
-                    onValueChange={toggleSwitch}
-                    value={isEnabled}
+                    onValueChange={toggleSwitchLLS}
+                    value={llEnabled}
+                />
+            </View>
+            <View style={styles.switchContainer}>
+                <Text style={styles.enableTxt}>Test Notifications</Text>
+                <Switch
+                    style={{ transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }], margin: 10 }}
+                    trackColor={{ false: '#767577', true: '#FFD700' }}
+                    thumbColor={tnEnabled ? '#2A2E30' : '#f4f3f4'}
+                    ios_backgroundColor="#3e3e3e"
+                    onValueChange={toggleSwitchTN}
+                    value={tnEnabled}
                 />
             </View>
             <Modal

@@ -95,8 +95,19 @@ const Home = ({ navigation }) => {
   PushNotification.createChannel(
     {
       channelId: 'afterlookChannel', // Choose a unique channel ID
-      channelName: 'Your Channel Name',
-      channelDescription: 'Your Channel Description',
+      channelName: 'Faller Alert',
+      channelDescription: 'This channel for alert the Faller',
+      soundName: 'default',
+      importance: 4, // 4 = HIGH, 3 = DEFAULT, 2 = LOW, 1 = MIN, 0 = NONE
+    },
+    (created) => console.log(`Channel created: ${created}`),
+  );
+
+  PushNotification.createChannel(
+    {
+      channelId: 'afterlookChannel1', // Choose a unique channel ID
+      channelName: 'Caregiver Alert',
+      channelDescription: 'This channel for alert the Caregiver',
       soundName: 'default',
       importance: 4, // 4 = HIGH, 3 = DEFAULT, 2 = LOW, 1 = MIN, 0 = NONE
     },
@@ -190,11 +201,12 @@ const Home = ({ navigation }) => {
               console.log('Sent and getting...')
               console.log('Response data:', response.data);
               const livLoc = await AsyncStorage.getItem("liveLoc");
-              if (response.data.isFalled === true && (livLoc === null || (livLoc !== null && JSON.parse(livLoc) === false))) {
+              const testNot = await AsyncStorage.getItem("testNot");
+              if ((response.data.isFalled === true && (livLoc === null || (livLoc !== null && JSON.parse(livLoc) === false))) || testNot !== null && JSON.parse(testNot) === true) {
                 setIsFalled(true);
                 await AsyncStorage.setItem('isFalled', JSON.stringify(true));
                 await BackgroundService.updateNotification({ taskDesc: 'Alert!!!' });
-                // Show notification with action buttons
+                // Show notification faller
                 PushNotification.localNotification({
                   channelId: 'afterlookChannel', // Use the same channel ID
                   title: 'Alert!!! Fall Detected!!!',
@@ -289,7 +301,8 @@ const Home = ({ navigation }) => {
 
         const pairD = await AsyncStorage.getItem("paired");
         const livLoc = await AsyncStorage.getItem("liveLoc");
-        if (pairD !== null && (livLoc === null || (livLoc !== null && JSON.parse(livLoc) === false))) {
+        const testNot = await AsyncStorage.getItem("testNot");
+        if ((pairD !== null && (livLoc === null || (livLoc !== null && JSON.parse(livLoc) === false))) || testNot !== null && JSON.parse(testNot) === true) {
           const us = JSON.parse(pairD);
           const snapshot = await firestore()
             .collection('Users')
@@ -299,6 +312,13 @@ const Home = ({ navigation }) => {
             if (snapshot.data().notify === true) {
               whoosh.play();
               whoosh.setVolume(1);
+
+              // Show notification caregiver
+              PushNotification.localNotification({
+                channelId: 'afterlookChannel1', // Use the same channel ID
+                title: 'Alert!!! Fall Detected!!!',
+                message: `Find ${snapshot.data().name}'s Location`,
+              });
             } else {
               whoosh.stop();
             }
@@ -509,15 +529,15 @@ const Home = ({ navigation }) => {
     },
     {
       title: '\nPermission',
-      describe: '\nGranting access to permissions does not involve providing data to third parties.\n\nTo ensure proper functionality of the app, it is necessary to grant access to Location, Contacts, SMS, and Notification permissions. \n\nLocation permissions must be set to Precise Location and grant "Allow all the time". In App Settings, User can click on the Location under "Allowed" section and Manually grant access to "Allow all the time" under "Location access for this app" section. Make sure "Use precise location" is enabled.\n\nIf any of the above-mentioned permissions are denied, the fall identification feature will not be enabled and direct you to the App settings.\n\nIf you directed to the App settings, you must manually enable the permissions, as the app will not prompt you again for permission.',
+      describe: '\nGranting access to permissions does not involve providing data to third parties.\n\nTo ensure proper functionality of the app, it is necessary to grant access to Location, Contacts, SMS, and Notification permissions.\n\nLocation permissions must be set to Precise Location and grant "Allow all the time". In App Settings, User can click on the Location under "Allowed" section and Manually grant access to "Allow all the time" under "Location access for this app" section. Make sure "Use precise location" is enabled.\n\nNotification permissions must be enable manually in order to get notifications.\n\nIf any of the above-mentioned permissions are denied, the fall identification feature will not be enabled and direct you to the App settings.\n\nIf you directed to the App settings, you must manually enable the permissions, as the app will not prompt you again for permission.',
     },
     {
       title: '\nContacts',
-      describe: '\nTo alert the Caregiver, it is necessary to Import at least one contact to the App.',
+      describe: '\nTo alert the Caregiver by SMS, it is necessary to Import at least one contact to the App.\n\nMake sure to update the contacts in the App if the Caregivers\' current number is changed.',
     },
     {
       title: '\nRegister',
-      describe: '\nRegistration is not required if you are only using SMS alerts.\n\nTo alert the Caregiver by an App notification, both need to register to the System.\n\nCaregiver able to Make a loud siren noise in Faller Device.',
+      describe: '\nRegistration is not required if you are only using SMS alerts.\n\nTo alert the Caregiver by an App notification, both need to register to the System.\n\nBoth get a loud siren noise in Device.',
     },
   ]
 
