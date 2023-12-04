@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, Text, TextInput, View, StatusBar, Modal, TouchableOpacity } from "react-native";
+import { StyleSheet, SafeAreaView, Text, TextInput, View, StatusBar, Modal, Linking, PermissionsAndroid, Platform, TouchableOpacity } from "react-native";
 import Toast from 'react-native-simple-toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import firestore from '@react-native-firebase/firestore';
 import { useIsFocused } from '@react-navigation/native';
 import BackgroundService from 'react-native-background-actions';
+import Geolocation from "@react-native-community/geolocation";
 
 const CareGiver = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -12,6 +13,8 @@ const CareGiver = () => {
   const [pairCode, setPairCode] = useState('');
   const [pairedDetails, setPairedDetails] = useState(null);
   const [isPaired, setIsPaired] = useState(false);
+
+  const [location, setLocation] = useState({ latitude: null, longitude: null });
 
   const isFocused = useIsFocused();
 
@@ -81,6 +84,76 @@ const CareGiver = () => {
     }
   }
 
+  const requestLocationPermission = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message: 'This app needs access to your location.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          console.log('Location permission granted');
+          getLocation();
+        } else {
+          console.log('Location permission denied');
+        }
+      } else if (Platform.OS === 'ios') {
+        const status = Geolocation.requestAuthorization();
+        if (status === 'granted') {
+          console.log('Location permission granted');
+          getLocation();
+        } else {
+          console.log('Location permission denied');
+        }
+      }
+    } catch (error) {
+      console.error('Error requesting location permission:', error);
+    }
+  };
+
+  const getLocation = () => {
+    Geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setLocation({ latitude, longitude });
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+    );
+  }
+
+  const getPharmaciesLocations = async () => {
+    await requestLocationPermission();
+    const urlPha = `geo:${location.latitude},${location.longitude}?q=pharmacy`;
+    Linking.openURL(urlPha).then(supported => {
+      if (supported) {
+        Linking.openURL(urlPha);
+      } else {
+        console.log("Can't Find, maybe Your don't gave Google Maps in your mobile or Did not enable");
+      }
+    });
+  };
+
+  const getHospitalsLocations = async () => {
+    await requestLocationPermission();
+    const urlPha = `geo:${location.latitude},${location.longitude}?q=hospitals`;
+    Linking.openURL(urlPha).then(supported => {
+      if (supported) {
+        Linking.openURL(urlPha);
+      } else {
+        console.log("Can't Find, maybe Your don't gave Google Maps in your mobile or Did not enable");
+      }
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.ncontainer}>
@@ -103,6 +176,14 @@ const CareGiver = () => {
             </TouchableOpacity>
           </>
         }
+        <View style={styles.findContainer}>
+        <TouchableOpacity style={styles.button} title='Paring' onPress={getPharmaciesLocations}>
+          <Text style={styles.signUpText}>Find Nearest Pharmacies</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} title='Paring' onPress={getHospitalsLocations}>
+          <Text style={styles.signUpText}>Find Nearest Hospitals</Text>
+        </TouchableOpacity>
+        </View>
         <Modal
           animationType="slide"
           transparent={true}
@@ -152,6 +233,12 @@ const styles = StyleSheet.create({
   pairContainer: {
     flex: 0.5,
     alignItems: "center",
+  },
+  findContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 30
   },
   cDivider: {
     margin: '3%',
