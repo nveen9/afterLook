@@ -133,14 +133,14 @@ const CareGiver = () => {
   const getPharmaciesLocations = async (value) => {
     await requestLocationPermission();
     const urlPha = '';
-    if (value === 1){
+    if (value === 1) {
       const doc = await firestore().collection('Users').doc(pairedDetails.userid).get();
       const geopoint = doc.data().geoL;
       urlPha = `geo:${geopoint.latitude},${geopoint.longitude}?q=pharmacy`;
     }
-    else if (value === 0){
+    else if (value === 0) {
       urlPha = `geo:${location.latitude},${location.longitude}?q=pharmacy`;
-    }    
+    }
     Linking.openURL(urlPha).then(supported => {
       if (supported) {
         Linking.openURL(urlPha);
@@ -153,14 +153,14 @@ const CareGiver = () => {
   const getHospitalsLocations = async (value) => {
     await requestLocationPermission();
     const urlPha = '';
-    if (value === 1){
+    if (value === 1) {
       const doc = await firestore().collection('Users').doc(pairedDetails.userid).get();
       const geopoint = doc.data().geoL;
       urlPha = `geo:${geopoint.latitude},${geopoint.longitude}?q=hospitals`;
     }
-    else if (value === 0){
+    else if (value === 0) {
       urlPha = `geo:${location.latitude},${location.longitude}?q=hospitals`;
-    }  
+    }
     Linking.openURL(urlPha).then(supported => {
       if (supported) {
         Linking.openURL(urlPha);
