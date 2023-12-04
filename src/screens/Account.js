@@ -5,7 +5,6 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useIsFocused } from '@react-navigation/native';
-import Geolocation from "@react-native-community/geolocation";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-simple-toast';
 
@@ -13,7 +12,6 @@ const Account = ({ navigation }) => {
     const [user, setUser] = useState(null);
     const [name, setName] = useState('');
     const [randomNum, setRandomNum] = useState(0);
-    const [intervalId, setIntervalId] = useState(null);
 
     const isFocused = useIsFocused();
 
@@ -42,67 +40,6 @@ const Account = ({ navigation }) => {
             };
         }
     }, [isFocused, user]);
-
-    const startSendingLocation = async () => {
-        const id = setInterval(sendLocation, 5000);
-        setIntervalId(id);
-        await firestore()
-            .collection('Users')
-            .doc(user.uid)
-            .update({
-                notify: true
-            })
-            .then(() => {
-                console.log('Notify updated!');
-            });
-    };
-
-    const stopSendingLocation = async () => {
-        if (intervalId) {
-            clearInterval(intervalId);
-            setIntervalId(null);
-        }
-        await firestore()
-            .collection('Users')
-            .doc(user.uid)
-            .update({
-                falled: false,
-                notify: false,
-            })
-            .then(() => {
-                console.log('Location closed!');
-            });
-    };
-
-    const sendLocation = async () => {
-        const { latitude, longitude } = await currentloc();
-        await firestore()
-            .collection('Users')
-            .doc(user.uid)
-            .update({
-                falled: true,
-                geoL: new firestore.GeoPoint(latitude, longitude),
-            })
-            .then(() => {
-                console.log('Location updated!');
-            });
-    }
-
-    const currentloc = async () => {
-        try {
-            return new Promise((resolve, reject) => {
-                Geolocation.getCurrentPosition((position) => {
-                    const { latitude, longitude } = position.coords;
-                    resolve({ latitude, longitude });
-                },
-                    (error) => reject(error),
-                    { enableHighAccuracy: true, timeout: 7000, maximumAge: 4000 }
-                );
-            });
-        } catch (err) {
-            console.log(err);
-        }
-    };
 
     const logout = async () => {
         const googleUser = await GoogleSignin.isSignedIn();

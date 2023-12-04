@@ -132,13 +132,19 @@ const CareGiver = () => {
 
   const getPharmaciesLocations = async (value) => {
     await requestLocationPermission();
-    const urlPha = '';
+    let urlPha = '';
     if (value === 1) {
+      console.log('Getting Faller Nearest');
       const doc = await firestore().collection('Users').doc(pairedDetails.userid).get();
       const geopoint = doc.data().geoL;
-      urlPha = `geo:${geopoint.latitude},${geopoint.longitude}?q=pharmacy`;
+      if (geopoint !== undefined) {
+        urlPha = `geo:${geopoint.latitude},${geopoint.longitude}?q=pharmacy`;
+      } else {
+        Toast.show("Not any Falling Activity Detected", Toast.LONG);
+      }
     }
     else if (value === 0) {
+      console.log('Getting Your Nearest');
       urlPha = `geo:${location.latitude},${location.longitude}?q=pharmacy`;
     }
     Linking.openURL(urlPha).then(supported => {
@@ -152,13 +158,19 @@ const CareGiver = () => {
 
   const getHospitalsLocations = async (value) => {
     await requestLocationPermission();
-    const urlPha = '';
+    let urlPha = '';
     if (value === 1) {
+      console.log('Getting Faller Nearest');
       const doc = await firestore().collection('Users').doc(pairedDetails.userid).get();
       const geopoint = doc.data().geoL;
-      urlPha = `geo:${geopoint.latitude},${geopoint.longitude}?q=hospitals`;
+      if (geopoint !== undefined) {
+        urlPha = `geo:${geopoint.latitude},${geopoint.longitude}?q=hospitals`;
+      } else {
+        Toast.show("Not any Falling Activity Detected", Toast.LONG);
+      }
     }
     else if (value === 0) {
+      console.log('Getting Your Nearest');
       urlPha = `geo:${location.latitude},${location.longitude}?q=hospitals`;
     }
     Linking.openURL(urlPha).then(supported => {
@@ -184,10 +196,10 @@ const CareGiver = () => {
             </TouchableOpacity>
 
             <View style={styles.findContainer}>
-              <TouchableOpacity style={styles.button} title='Paring' onPress={getPharmaciesLocations(1)}>
+              <TouchableOpacity style={styles.button} title='Paring' onPress={() => getPharmaciesLocations(1)}>
                 <Text style={styles.signUpText}>Find Nearest Pharmacies</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.button} title='Paring' onPress={getHospitalsLocations(1)}>
+              <TouchableOpacity style={styles.button} title='Paring' onPress={() => getHospitalsLocations(1)}>
                 <Text style={styles.signUpText}>Find Nearest Hospitals</Text>
               </TouchableOpacity>
             </View>
@@ -201,10 +213,10 @@ const CareGiver = () => {
             </TouchableOpacity>
 
             <View style={styles.findContainer}>
-              <TouchableOpacity style={styles.button} title='Paring' onPress={getPharmaciesLocations(0)}>
+              <TouchableOpacity style={styles.button} title='Paring' onPress={() => getPharmaciesLocations(0)}>
                 <Text style={styles.signUpText}>Find Nearest Pharmacies</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.button} title='Paring' onPress={getHospitalsLocations(0)}>
+              <TouchableOpacity style={styles.button} title='Paring' onPress={() => getHospitalsLocations(0)}>
                 <Text style={styles.signUpText}>Find Nearest Hospitals</Text>
               </TouchableOpacity>
             </View>
