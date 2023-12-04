@@ -130,9 +130,17 @@ const CareGiver = () => {
     );
   }
 
-  const getPharmaciesLocations = async () => {
+  const getPharmaciesLocations = async (value) => {
     await requestLocationPermission();
-    const urlPha = `geo:${location.latitude},${location.longitude}?q=pharmacy`;
+    const urlPha = '';
+    if (value === 1){
+      const doc = await firestore().collection('Users').doc(pairedDetails.userid).get();
+      const geopoint = doc.data().geoL;
+      urlPha = `geo:${geopoint.latitude},${geopoint.longitude}?q=pharmacy`;
+    }
+    else if (value === 0){
+      urlPha = `geo:${location.latitude},${location.longitude}?q=pharmacy`;
+    }    
     Linking.openURL(urlPha).then(supported => {
       if (supported) {
         Linking.openURL(urlPha);
@@ -142,9 +150,17 @@ const CareGiver = () => {
     });
   };
 
-  const getHospitalsLocations = async () => {
+  const getHospitalsLocations = async (value) => {
     await requestLocationPermission();
-    const urlPha = `geo:${location.latitude},${location.longitude}?q=hospitals`;
+    const urlPha = '';
+    if (value === 1){
+      const doc = await firestore().collection('Users').doc(pairedDetails.userid).get();
+      const geopoint = doc.data().geoL;
+      urlPha = `geo:${geopoint.latitude},${geopoint.longitude}?q=hospitals`;
+    }
+    else if (value === 0){
+      urlPha = `geo:${location.latitude},${location.longitude}?q=hospitals`;
+    }  
     Linking.openURL(urlPha).then(supported => {
       if (supported) {
         Linking.openURL(urlPha);
@@ -166,6 +182,15 @@ const CareGiver = () => {
             <TouchableOpacity style={styles.button} title='unparing' onPress={unpair}>
               <Text style={styles.signUpText}>Unpair</Text>
             </TouchableOpacity>
+
+            <View style={styles.findContainer}>
+              <TouchableOpacity style={styles.button} title='Paring' onPress={getPharmaciesLocations(1)}>
+                <Text style={styles.signUpText}>Find Nearest Pharmacies</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.button} title='Paring' onPress={getHospitalsLocations(1)}>
+                <Text style={styles.signUpText}>Find Nearest Hospitals</Text>
+              </TouchableOpacity>
+            </View>
           </>
           :
           <>
@@ -174,16 +199,17 @@ const CareGiver = () => {
             <TouchableOpacity style={styles.button} title='Paring' onPress={() => setModalVisible(true)}>
               <Text style={styles.signUpText}>Paring with Faller</Text>
             </TouchableOpacity>
+
+            <View style={styles.findContainer}>
+              <TouchableOpacity style={styles.button} title='Paring' onPress={getPharmaciesLocations(0)}>
+                <Text style={styles.signUpText}>Find Nearest Pharmacies</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.button} title='Paring' onPress={getHospitalsLocations(0)}>
+                <Text style={styles.signUpText}>Find Nearest Hospitals</Text>
+              </TouchableOpacity>
+            </View>
           </>
         }
-        <View style={styles.findContainer}>
-        <TouchableOpacity style={styles.button} title='Paring' onPress={getPharmaciesLocations}>
-          <Text style={styles.signUpText}>Find Nearest Pharmacies</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} title='Paring' onPress={getHospitalsLocations}>
-          <Text style={styles.signUpText}>Find Nearest Hospitals</Text>
-        </TouchableOpacity>
-        </View>
         <Modal
           animationType="slide"
           transparent={true}
