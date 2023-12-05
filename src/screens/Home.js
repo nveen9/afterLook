@@ -532,12 +532,16 @@ const Home = ({ navigation }) => {
       describe: '\nGranting access to permissions does not involve providing data to third parties.\n\nTo ensure proper functionality of the app, it is necessary to grant access to Location, Contacts, SMS, and Notification permissions.\n\nLocation permissions must be set to Precise Location and grant "Allow all the time". In App Settings, User can click on the Location under "Allowed" section and Manually grant access to "Allow all the time" under "Location access for this app" section. Make sure "Use precise location" is enabled.\n\nNotification permissions must be enable manually in order to get notifications.\n\nIf any of the above-mentioned permissions are denied, the fall identification feature will not be enabled and direct you to the App settings.\n\nIf you directed to the App settings, you must manually enable the permissions, as the app will not prompt you again for permission.',
     },
     {
+      title: '\nAlert',
+      describe: '\nFifteen seconds (15s) response time is given to the Faller.\n\nWhen Fall Detected, Faller get a loud siren noise in the Device.\n\nFaller can response with Yes or No. If there is no response or Faller responded as Yes, Caregiver get notified after the Fifteen seconds (15s).',
+    },
+    {
       title: '\nContacts',
       describe: '\nTo alert the Caregiver by SMS, it is necessary to Import at least one contact to the App.\n\nMake sure to update the contacts in the App if the Caregivers\' current number is changed.',
     },
     {
       title: '\nRegister',
-      describe: '\nRegistration is not required if you are only using SMS alerts.\n\nTo alert the Caregiver by an App notification, both need to register to the System.\n\nBoth get a loud siren noise in Device.',
+      describe: '\nRegistration is not required if you are only using SMS alerts.\n\nTo alert the Caregiver by an App notification, Faller need to register to the System and Caregiver need to Pair with Faller.\n\nBoth get a loud siren noise in Device when Fall Detected.',
     },
   ]
 
